@@ -13,7 +13,7 @@ function encodeSolarNetworkUrl(url: any) {
 }
 
 async function getNodeIds(auth: any, secret: string) {
-    const url = "https://data.solarnetwork.net/solaruser/api/v1/sec/nodes"
+    const url = "https://data.solarnetwork.net/solarquery/api/v1/sec/nodes"
     const authHeader = auth.snDate(true).url(url).build(secret)
 
     const response = await axios.get(url, {
@@ -23,7 +23,7 @@ async function getNodeIds(auth: any, secret: string) {
         }
     })
 
-    return response.data.data.results.map((x: any) => x.id)
+    return response.data.data
 }
 
 async function getDatums(mostRecent: boolean, source: string, auth: any, secret: string, ids: any, start?: string, end?: string, aggregation?: string) {

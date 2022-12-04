@@ -13,7 +13,7 @@ or pull it from dockerhub:
 
 ```shell
 $ docker pull thomaspassmore/solarquant:latest
-$ docker run --rm -it --entrypoint bash thomaspassmore:solarquant
+$ docker run --rm -it --entrypoint bash thomaspassmore/solarquant:latest
 # sqc -h
 Usage: sqc [options] [command]
 
@@ -21,10 +21,10 @@ Options:
   -h, --help        display help for command
 
 Commands:
-  config
-  projects
-  events
-  datums [options]
+  config            Manage authenticated sessions
+  projects          Fetch project metadata
+  events            Fetch events
+  datums [options]  Fetch datums from SolarNetwork
   help [command]    display help for command
 ```
 
@@ -42,7 +42,7 @@ The Ecogy AMS authentication process may need to be completed regularly.
 To authenticate against the Ecogy AMS, run the following command:
 
 ```shell
-$ sqc authenticte ams
+$ sqc config authenticate ams
 ```
 
 You will be asked to provide the following information:
@@ -60,7 +60,7 @@ You will be asked to provide the following information:
 To authenticate against SolarNetwork, run the following command:
 
 ```shell
-$ sqc authenticte sn
+$ sqc config authenticate sn
 ```
 
 You will be asked to provide the following information:
@@ -104,7 +104,7 @@ For example, to fetch datums for all sources in the `MA` project, we can use the
 command:
 
 ```shell
-$ sqc datums stream /MA/** timestamp,voltage\$average,voltage\$minimum,voltage\$maximum --aggregation Hour
+$ sqc datums stream /MA/** timestamp,voltage\$average,voltage\$minimum,voltage\$maximum --aggregation Hour 2022-05-01 2022-10-01
 ```
 
 The output should look something like the following:

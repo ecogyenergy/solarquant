@@ -5,7 +5,7 @@ process.env.NODE_NO_WARNINGS = "1";
 import {Command} from "commander";
 import {listAMSProjects, listAMSSites, listAMSSources, listEvents} from "./ams.js"
 import {authenticateAMS, authenticateSolarNetwork} from "./config.js";
-import { fetchSNDatums, listSourceMeasurements} from "./solarnetwork.js";
+import {fetchSNDatums, listSourceMeasurements} from "./solarnetwork.js";
 
 const quant = new Command("sqc")
 const config = new Command("config").description("Manage authenticated sessions")

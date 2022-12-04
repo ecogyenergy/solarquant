@@ -1,7 +1,5 @@
-import {Amplify, Auth} from "aws-amplify";
-import {question} from "readline-sync";
 import {readConfigFile} from "./config.js";
-import { printTable, Table } from "console-table-printer";
+import {Table} from "console-table-printer";
 
 export interface AMSOptions {
     // AMS API URL

@@ -5,7 +5,7 @@ import {readConfigFile} from "./config.js";
 import cliProgress, {MultiBar} from "cli-progress"
 import {SimpleChannel} from "channel-ts";
 import {getDateRanges} from "./util.js";
-import moment  from "moment";
+import moment from "moment";
 import {Table} from "console-table-printer";
 
 function encodeSolarNetworkUrl(url: any) {
@@ -108,10 +108,10 @@ function columnValue(aggregated: boolean, c: string, row: any, m: any): string {
 }
 
 function chunkArray<T>(arr: T[], n: number): T[][] {
-    var chunkLength = Math.max(arr.length/n ,1);
+    var chunkLength = Math.max(arr.length / n, 1);
     var chunks = [];
     for (var i = 0; i < n; i++) {
-        if(chunkLength*(i+1)<=arr.length)chunks.push(arr.slice(chunkLength*i, chunkLength*(i+1)));
+        if (chunkLength * (i + 1) <= arr.length) chunks.push(arr.slice(chunkLength * i, chunkLength * (i + 1)));
     }
     return chunks;
 }
@@ -236,7 +236,7 @@ async function fetchSNDatumsProducer(chan: SimpleChannel<SNChunk>, bar: MultiBar
                     total: total
                 })
             }
-        } catch(e: any) {
+        } catch (e: any) {
             console.error(e)
             console.log("ERROR: " + e.config.url)
         }
@@ -247,7 +247,7 @@ async function fetchSNDatumsProducer(chan: SimpleChannel<SNChunk>, bar: MultiBar
 async function fetchSNDatumsConsumer(chan: SimpleChannel<SNChunk>, bar: MultiBar, total: number, auth: any, secret: string, ids: any, format: string, start: string, end: string, opts: any) {
 
     const columns = format.split(",")
-    const b = bar.create(total, 0,{}, {
+    const b = bar.create(total, 0, {}, {
         format: ' {bar} | Total Progress: {value}/{total} | {eta_formatted}',
     })
 

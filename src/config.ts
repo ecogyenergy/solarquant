@@ -76,7 +76,7 @@ export async function authenticateAMS(): Promise<void> {
         authenticationFlowType: "USER_SRP_AUTH",
     };
 
-    Amplify.configure({ Auth: AwsConfigAuth });
+    Amplify.configure({Auth: AwsConfigAuth});
     let user = await Auth.signIn(cfg.ams.username, password);
 
     if (user.challengeName) {
@@ -119,7 +119,7 @@ export async function authenticateS3(): Promise<void> {
         cfg.s3.accessToken = question("Access Token: ")
     }
     if (!cfg.s3?.accessSecret) {
-        cfg.s3.accessSecret = question("Access Secret: ",{hideEchoBack: true})
+        cfg.s3.accessSecret = question("Access Secret: ", {hideEchoBack: true})
     }
 
     writeConfigFile(cfg)

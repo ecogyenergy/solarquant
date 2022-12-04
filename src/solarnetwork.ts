@@ -1,7 +1,7 @@
 import {URL, URLSearchParams} from "url";
 import axios from "axios";
 import {AuthorizationV2Builder, DatumStreamMetadataRegistry} from "solarnetwork-api-core";
-import {readConfigFile} from "./config.js";
+import {readConfigFile, SNConfig} from "./config.js";
 import cliProgress, {MultiBar} from "cli-progress"
 import {SimpleChannel} from "channel-ts";
 import {getDateRanges} from "./util.js";
@@ -12,8 +12,8 @@ function encodeSolarNetworkUrl(url: any) {
     return url.toString().replace(/\+/g, "%20") // SolarNetwork doesn't support + for space character encoding
 }
 
-async function getNodeIds(auth: any, secret: string) {
-    const url = "https://data.solarnetwork.net/solarquery/api/v1/sec/nodes"
+async function getNodeIds(cfg: SNConfig, auth: any, secret: string) {
+    const url = `${cfg.url}/solarquery/api/v1/sec/nodes`
     const authHeader = auth.snDate(true).url(url).build(secret)
 
     const response = await axios.get(url, {
@@ -26,7 +26,7 @@ async function getNodeIds(auth: any, secret: string) {
     return response.data.data
 }
 
-async function getDatums(mostRecent: boolean, source: string, auth: any, secret: string, ids: any, start?: string, end?: string, aggregation?: string) {
+async function getDatums(cfg: SNConfig, mostRecent: boolean, source: string, auth: any, secret: string, ids: any, start?: string, end?: string, aggregation?: string) {
 
     let raw: any = {
         nodeIds: ids,
@@ -44,7 +44,7 @@ async function getDatums(mostRecent: boolean, source: string, auth: any, secret:
         raw.aggregation = aggregation
 
     const params = new URLSearchParams(raw)
-    const url = "https://data.solarnetwork.net/solarquery/api/v1/sec/datum/stream/datum"
+    const url = `${cfg.url}/solarquery/api/v1/sec/datum/stream/datum`
 
     const fetchUrl = new URL(url)
     fetchUrl.search = params.toString()
@@ -62,8 +62,8 @@ async function getDatums(mostRecent: boolean, source: string, auth: any, secret:
     return response.data
 }
 
-async function listSources(source: string, auth: any, secret: string, ids: any): Promise<string[]> {
-    const result = await getDatums(true, source, auth, secret, ids, undefined, undefined)
+async function listSources(cfg: SNConfig, source: string, auth: any, secret: string, ids: any): Promise<string[]> {
+    const result = await getDatums(cfg, true, source, auth, secret, ids, undefined, undefined)
     return result.meta.map((m: any) => m['sourceId'])
 }
 
@@ -133,9 +133,9 @@ export async function listSourceMeasurements(path: string): Promise<void> {
 
     const auth = new AuthorizationV2Builder(cfg.sn.token)
     const secret: string = cfg.sn.secret
-    const ids = await getNodeIds(auth, cfg.sn.secret)
+    const ids = await getNodeIds(cfg.sn, auth, cfg.sn.secret)
 
-    const result = await getDatums(true, path, auth, secret, ids, undefined, undefined)
+    const result = await getDatums(cfg.sn, true, path, auth, secret, ids, undefined, undefined)
 
     let rows = []
     for (const source of result.meta) {
@@ -208,7 +208,7 @@ interface SNChunk {
     total: number
 }
 
-async function fetchSNDatumsProducer(chan: SimpleChannel<SNChunk>, bar: MultiBar, auth: any, secret: string, ids: any, sources: string[], format: string, start: string, end: string, opts: any) {
+async function fetchSNDatumsProducer(cfg: SNConfig, chan: SimpleChannel<SNChunk>, bar: MultiBar, auth: any, secret: string, ids: any, sources: string[], format: string, start: string, end: string, opts: any) {
     if (!sources) {
         return
     }
@@ -230,7 +230,7 @@ async function fetchSNDatumsProducer(chan: SimpleChannel<SNChunk>, bar: MultiBar
 
                 b.update(total, {sourceId: source})
 
-                const datums = await getDatums(false, source, auth, secret, ids, s, e, opts['aggregation'])
+                const datums = await getDatums(cfg, false, source, auth, secret, ids, s, e, opts['aggregation'])
                 chan.send({
                     datums: datums,
                     total: total
@@ -349,8 +349,8 @@ export async function fetchSNDatums(source: string, format: string, start: strin
 
     const auth = new AuthorizationV2Builder(cfg.sn.token)
 
-    const ids = await getNodeIds(auth, cfg.sn.secret)
-    const sources = await listSources(source, auth, cfg.sn.secret, ids)
+    const ids = await getNodeIds(cfg.sn, auth, cfg.sn.secret)
+    const sources = await listSources(cfg.sn, source, auth, cfg.sn.secret, ids)
     const coefficient = getDateRanges(moment(start), moment(end)).length
 
     const bar = new cliProgress.MultiBar({
@@ -369,7 +369,8 @@ export async function fetchSNDatums(source: string, format: string, start: strin
     const chan = new SimpleChannel<SNChunk>();
     const groups = chunkArray(sources, parallel)
     const p1 = fetchSNDatumsConsumer(chan, bar, sources.length * coefficient, auth, secret, ids, format, start, end, opts)
-    const p2 = Array.from(Array(parallel).keys()).map(async i => fetchSNDatumsProducer(chan, bar, auth, secret, ids, groups[i], format, start, end, opts))
+    const sncfg = cfg.sn
+    const p2 = Array.from(Array(parallel).keys()).map(async i => fetchSNDatumsProducer(sncfg, chan, bar, auth, secret, ids, groups[i], format, start, end, opts))
 
     await Promise.all(p2)
     chan.close()

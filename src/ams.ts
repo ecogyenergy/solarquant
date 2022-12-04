@@ -8,7 +8,7 @@ export async function listAMSProjects(codes: boolean): Promise<void> {
         throw new Error("Must have active AMS authentication")
     }
 
-    const response = await fetch("https://api.ecogytest.io/projects", {
+    const response = await fetch(`${cfg.ams.url}/projects`, {
         headers: {
             Authorization: cfg.ams.session
         }
@@ -65,7 +65,7 @@ export async function listAMSSites(project: string): Promise<void> {
         throw new Error("Must have active AMS authentication")
     }
 
-    const response = await fetch("https://api.ecogytest.io/projects", {
+    const response = await fetch(`${cfg.ams.url}/projects`, {
         headers: {
             Authorization: cfg.ams.session
         }
@@ -96,7 +96,7 @@ export async function listAMSSources(project: string, site: string): Promise<voi
         throw new Error("Must have active AMS authentication")
     }
 
-    const response = await fetch("https://api.ecogytest.io/projects", {
+    const response = await fetch(`${cfg.ams.url}/projects`, {
         headers: {
             Authorization: cfg.ams.session
         }
@@ -131,7 +131,7 @@ export async function listEvents(start: string, end: string): Promise<void> {
         throw new Error("Must have active AMS authentication")
     }
 
-    const response = await fetch(`https://api.ecogytest.io/events?start=${start}&end=${end}`, {
+    const response = await fetch(`${cfg.ams.url}/events?start=${start}&end=${end}`, {
         headers: {
             Authorization: cfg.ams.session
         }

@@ -3,6 +3,7 @@ import {Amplify, Auth} from "aws-amplify";
 import {readFileSync, writeFileSync} from "fs";
 
 export interface AMSConfig {
+    url?: string,
     region?: string,
     poolId?: string,
     clientId?: string,
@@ -11,6 +12,7 @@ export interface AMSConfig {
 }
 
 export interface SNConfig {
+    url?: string,
     token?: string,
     secret?: string
 }
@@ -48,6 +50,12 @@ export async function authenticateAMS(): Promise<void> {
         cfg.ams = {}
     }
 
+    if (!cfg.ams?.url) {
+        const def = "https://api.ecogytest.io"
+        cfg.ams.url = question(`AMS URL [${def}]: `, {
+            defaultInput: def
+        })
+    }
     if (!cfg.ams?.region) {
         cfg.ams.region = question("AWS Region: ")
     }
@@ -95,6 +103,12 @@ export async function authenticateSolarNetwork(): Promise<void> {
         cfg.sn = {}
     }
 
+    if (!cfg.sn?.url) {
+        const def = "https://data.solarnetwork.net"
+        cfg.sn.url = question(`SolarNetwork URL [${def}]: `, {
+            defaultInput: def
+        })
+    }
     if (!cfg.sn?.token) {
         cfg.sn.token = question("SolarNetwork Token: ")
     }

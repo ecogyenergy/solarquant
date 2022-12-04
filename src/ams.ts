@@ -1,61 +1,6 @@
 import {readConfigFile} from "./config.js";
 import {Table} from "console-table-printer";
 
-export interface AMSOptions {
-    // AMS API URL
-    amsURL?: string,
-
-    // AMS username
-    username?: string,
-
-    // AMS password
-    password?: string,
-
-    // Region that the cognito pool lives in (us-east-1, for example)
-    region?: string,
-
-    // User pool ID provided by cognito
-    userPoolId?: string,
-
-    // The userPoolWebClientId field is just the client ID
-    userPoolWebClientId?: string,
-
-    // Project code
-    project?: string
-}
-
-export async function getAMSProjects(): Promise<string> {
-    const cfg = readConfigFile()
-
-    if (!cfg.ams?.session) {
-        throw new Error("Must have active AMS authentication")
-    }
-
-    const response = await fetch("https://api.ecogytest.io/projects", {
-        headers: {
-            Authorization: cfg.ams.session
-        }
-    })
-
-    if (response.status != 200) {
-        throw new Error(`Failed to fetch export data, code: ${response.status}, message: ${response.statusText}`)
-    }
-
-    const fields = [
-        "status",
-        "name",
-        "state",
-        "code",
-        "town",
-        "timezone",
-        "lat",
-        "long"
-    ]
-
-    const json = await response.json()
-    return json["projects"].map((p: any) => p["code"])
-}
-
 export async function listAMSProjects(codes: boolean): Promise<void> {
     const cfg = readConfigFile()
 

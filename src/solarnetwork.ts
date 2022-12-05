@@ -19,7 +19,8 @@ async function getNodeIds(cfg: SNConfig, auth: any, secret: string) {
     const response = await axios.get(url, {
         headers: {
             Authorization: authHeader,
-            "X-SN-Date": auth.requestDateHeaderValue
+            "X-SN-Date": auth.requestDateHeaderValue,
+            "Accept-Encoding": "UTF8"
         }
     })
 
@@ -55,7 +56,8 @@ async function getDatums(cfg: SNConfig, mostRecent: boolean, source: string, aut
     const response = await axios.get(urlString, {
         headers: {
             Authorization: authHeader,
-            "X-SN-Date": auth.requestDateHeaderValue
+            "X-SN-Date": auth.requestDateHeaderValue,
+            "Accept-Encoding": "UTF8"
         }
     })
 

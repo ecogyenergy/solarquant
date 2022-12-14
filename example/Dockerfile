@@ -1,4 +1,4 @@
-FROM thomaspassmore/solarquant:latest
+FROM ecogyenergy/solarquant:latest
 
 RUN apt-get install python3 curl
 RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py

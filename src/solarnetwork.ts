@@ -74,38 +74,83 @@ function columnName(c: string): string {
     return meta == -1 ? c : c.substring(0, meta)
 }
 
+function columnExists(m: any, name: string): boolean {
+    const columnTypes = ['i', 'a', 's']
+
+    for (const t of columnTypes) {
+        const indx = m[t].findIndex((v: any) => v == name)
+        if (indx) {
+            return true
+        }
+    }
+
+    return false
+}
+
 function columnValue(aggregated: boolean, c: string, row: any, m: any): string {
     const meta = c.indexOf("$")
     const name = columnName(c)
-    const indx = m['i'].findIndex((v: any) => v == name)
 
-    if (!row[2 + indx]) {
+    const columnTypes = ['i', 'a', 's']
+
+    let columnType
+    let columnOffset = 0
+    let indx
+
+    for (const t of columnTypes) {
+        columnType = t
+        indx = m[t] ? m[t].findIndex((v: any) => v == name) : -1
+
+        if (indx >= 0) {
+            break
+        }
+
+        columnOffset += m[t] ? m[t].length : 0
+    }
+
+    const arrayType = aggregated && (columnType == 'i' || columnType == 'a')
+
+    if (row[2 + columnOffset + indx] === undefined) {
         return ""
     }
 
     if (meta != -1) {
         const metaValue = c.substring(meta + 1)
 
-        if (!aggregated && metaValue != "count") {
-            return row[2 + indx]
-        } else if (!aggregated && metaValue == "count") {
+        if (!arrayType && metaValue != "count") {
+            return row[2 + columnOffset + indx]
+        } else if (!arrayType && metaValue == "count") {
             return "1"
         }
 
-        if (metaValue == "average") {
-            return row[2 + indx][0]
-        } else if (metaValue == "count") {
-            return row[2 + indx][1]
-        } else if (metaValue == "minimum") {
-            return row[2 + indx][2]
-        } else if (metaValue == "maximum") {
-            return row[2 + indx][3]
+        if (columnType == 'i') {
+            if (metaValue == "average") {
+                return row[2 + columnOffset + indx][0]
+            } else if (metaValue == "count") {
+                return row[2 + columnOffset + indx][1]
+            } else if (metaValue == "minimum") {
+                return row[2 + columnOffset + indx][2]
+            } else if (metaValue == "maximum") {
+                return row[2 + columnOffset + indx][3]
+            } else {
+                throw new Error("unknown meta description")
+            }
+        } else if (columnType == 'a') {
+            if (metaValue == "difference") {
+                return row[2 + columnOffset + indx][0]
+            } else if (metaValue == "starting") {
+                return row[2 + columnOffset + indx][1]
+            } else if (metaValue == "ending") {
+                return row[2 + columnOffset + indx][2]
+            } else {
+                throw new Error("unknown meta description")
+            }
         } else {
-            throw new Error("unknown meta description")
+            throw new Error("unreachable")
         }
     } else {
-        // return average
-        return row[2 + indx][0]
+        // return average for 'i', difference for 'a'
+        return arrayType ? row[2 + columnOffset + indx][0] : row[2 + columnOffset + indx]
     }
 }
 
@@ -233,6 +278,7 @@ async function fetchSNDatumsProducer(cfg: SNConfig, chan: SimpleChannel<SNChunk>
                 b.update(total, {sourceId: source})
 
                 const datums = await getDatums(cfg, false, source, auth, secret, ids, s, e, opts['aggregation'])
+
                 chan.send({
                     datums: datums,
                     total: total
@@ -275,7 +321,7 @@ async function fetchSNDatumsConsumer(chan: SimpleChannel<SNChunk>, bar: MultiBar
                 if (c == "timestamp")
                     return true
 
-                return m['i'].findIndex((v: any) => v == columnName(c)) >= 0
+                return columnExists(m, columnName(c))
             })
 
             if (foundColumns.length != columns.length) {
@@ -322,7 +368,7 @@ async function fetchSNDatumsConsumer(chan: SimpleChannel<SNChunk>, bar: MultiBar
 
                 const val = columnValue(opts['aggregation'] != undefined, c, row, m)
 
-                if (val) {
+                if (val !== undefined) {
                     process.stdout.write(val.toString())
                 }
                 process.stdout.write(sep)

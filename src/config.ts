@@ -74,14 +74,6 @@ export async function authenticateAMS(): Promise<void> {
         region: cfg.ams.region,
         userPoolId: cfg.ams.poolId,
         userPoolWebClientId: cfg.ams.clientId,
-        cookieStorage: {
-            domain: "localhost",
-            path: "/",
-            expires: 365,
-            sameSite: "strict",
-            secure: true,
-        },
-        authenticationFlowType: "USER_SRP_AUTH",
     };
 
     Amplify.configure({Auth: AwsConfigAuth});

@@ -1,6 +1,6 @@
 import {readConfigFile} from "./config.js";
 import {Table} from "console-table-printer";
-import axios, {AxiosError} from "axios";
+import axios from "axios";
 
 export async function listAMSProjects(codes: boolean): Promise<void> {
     const cfg = readConfigFile()
@@ -49,7 +49,7 @@ export async function listAMSProjects(codes: boolean): Promise<void> {
 
         p.printTable()
     } catch(e) {
-        if (e instanceof AxiosError) {
+        if (e instanceof axios.AxiosError) {
             if (e.response?.status != 200) {
                 if (e.response?.status == 401) {
                     console.error("The AMS API rejected your authenticated session. Please authenticate again.")
@@ -97,7 +97,7 @@ export async function listAMSSites(project: string): Promise<void> {
             console.log(key)
         })
     } catch (e) {
-        if (e instanceof AxiosError) {
+        if (e instanceof axios.AxiosError) {
             if (e.response?.status != 200) {
                 if (e.response?.status == 401) {
                     console.error("The AMS API rejected your authenticated session. Please authenticate again.")
@@ -148,7 +148,7 @@ export async function listAMSSources(project: string, site: string): Promise<voi
 
         console.log(JSON.stringify(output, null, 4))
     } catch (e) {
-        if (e instanceof AxiosError) {
+        if (e instanceof axios.AxiosError) {
             if (e.response?.status != 200) {
                 if (e.response?.status == 401) {
                     console.error("The AMS API rejected your authenticated session. Please authenticate again.")
@@ -223,7 +223,7 @@ export async function listEvents(start: string, end: string): Promise<void> {
             }
         }
     } catch (e) {
-        if (e instanceof AxiosError) {
+        if (e instanceof axios.AxiosError) {
             if (e.response?.status != 200) {
                 if (e.response?.status == 401) {
                     console.error("The AMS API rejected your authenticated session. Please authenticate again.")

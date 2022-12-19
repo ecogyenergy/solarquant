@@ -162,8 +162,9 @@ the datum was recorded.
 ##### Meta column names
 
 The `$` character is used to delineate between the column name, and the type of value.
-For instance, instantaneous measurements using the aggregation option provide the `$average`,
-`$count`, `$minimum` and `$maximum` values.
+
+* Instantaneous measurements support `$average`, `$count`, `$minimum`, and `$maximum` values.
+* Accumulating measurements support `$difference`, `$starting`, and `$ending` values.
 
 ##### Filtering Rows
 

@@ -1,0 +1,28 @@
+{
+  "success": true,
+  "meta": [
+    {
+      "streamId": "71d15bc8-7105-4f1e-9fc3-e2769e3775f1",
+      "zone": "America/New_York",
+      "kind": "n",
+      "objectId": 1,
+      "sourceId": "pyr1",
+      "i": [
+        "irradiance",
+        "temperature"
+      ],
+      "a": [
+        "irradianceHours"
+      ]
+    }
+  ],
+  "data": [
+    [
+      0,
+      1674642768011,
+      0,
+      -3.3899405,
+      2070510.463043
+    ]
+  ]
+}

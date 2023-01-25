@@ -78,8 +78,13 @@ function columnExists(m: any, name: string): boolean {
     const columnTypes = ['i', 'a', 's']
 
     for (const t of columnTypes) {
+        // Not all sources have all types
+        if (!m[t]) {
+            continue
+        }
+
         const indx = m[t].findIndex((v: any) => v == name)
-        if (indx) {
+        if (indx != -1) {
             return true
         }
     }
@@ -110,7 +115,7 @@ function columnValue(aggregated: boolean, c: string, row: any, m: any): string {
 
     const arrayType = aggregated && (columnType == 'i' || columnType == 'a')
 
-    if (row[2 + columnOffset + indx] === undefined) {
+    if (indx < 0 || row[2 + columnOffset + indx] === undefined) {
         return ""
     }
 
@@ -155,9 +160,9 @@ function columnValue(aggregated: boolean, c: string, row: any, m: any): string {
 }
 
 function chunkArray<T>(arr: T[], n: number): T[][] {
-    var chunkLength = Math.max(arr.length / n, 1);
-    var chunks = [];
-    for (var i = 0; i < n; i++) {
+    const chunkLength = Math.max(arr.length / n, 1);
+    const chunks = [];
+    for (let i = 0; i < n; i++) {
         if (chunkLength * (i + 1) <= arr.length) chunks.push(arr.slice(chunkLength * i, chunkLength * (i + 1)));
     }
     return chunks;

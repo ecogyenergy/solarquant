@@ -304,6 +304,8 @@ async function fetchSNDatumsConsumer(chan: SimpleChannel<SNChunk>, bar: MultiBar
         format: ' {bar} | Total Progress: {value}/{total} | {eta_formatted}',
     })
 
+    const haveTimestamp = columns.findIndex(col => col === "timestamp") != -1
+
     for await(const next of chan) {
         const datums = next.datums
 
@@ -332,8 +334,8 @@ async function fetchSNDatumsConsumer(chan: SimpleChannel<SNChunk>, bar: MultiBar
             if (foundColumns.length != columns.length) {
                 const empty = opts['empty']
                 const partial = opts['partial']
-                const isEmpty = foundColumns.length == 1
-                const isPartial = foundColumns.length > 1
+                const isEmpty = haveTimestamp ? foundColumns.length == 1 : foundColumns.length == 0
+                const isPartial = haveTimestamp ? foundColumns.length > 1 : foundColumns.length > 0
 
                 if (isEmpty && !empty) {
                     continue
@@ -359,7 +361,7 @@ async function fetchSNDatumsConsumer(chan: SimpleChannel<SNChunk>, bar: MultiBar
 
                 if (c == "timestamp") {
                     // TODO: ignoring end?
-                    if (opts['aggregations'] != undefined) {
+                    if (opts['aggregation'] != undefined) {
                         if (row[1][0]) {
                             process.stdout.write(row[1][0].toString())
                         }
@@ -368,6 +370,7 @@ async function fetchSNDatumsConsumer(chan: SimpleChannel<SNChunk>, bar: MultiBar
                             process.stdout.write(row[1].toString())
                         }
                     }
+                    process.stdout.write(sep)
                     continue
                 }
 

@@ -42,6 +42,50 @@ async function getNodeMetadata(nodeId: number, cfg: SNConfig, auth: any, secret:
     return response.data.data
 }
 
+interface SourceInformation {
+    state: "information"
+    nodeId: number
+    sourceId: string
+}
+
+interface NodeSearched {
+    state: "searched"
+    nodeId: number
+}
+
+type SourceEvent = SourceInformation | NodeSearched
+
+async function getSources(ids: number[], chan: SimpleChannel<SourceEvent>, cfg: SNConfig, auth: any, secret: string) {
+
+    const parallel = ids.length
+    const groups: number[][] = chunkArray(ids, parallel)
+
+    const inner = async (group: number[]) => {
+        for (const id of group) {
+            const meta = await getNodeMetadata(id, cfg, auth, secret)
+
+            if (Array.isArray(meta['results'])) {
+                for (const result of meta['results']) {
+
+                    chan.send({
+                        state: "information",
+                        nodeId: id,
+                        sourceId: result['sourceId']
+                    })
+                }
+            }
+
+            chan.send({
+                state: "searched",
+                nodeId: id
+            })
+        }
+    }
+
+    const p2 = Array.from(Array(parallel).keys()).map(async i => inner(groups[i]))
+    await Promise.all(p2)
+}
+
 async function getDatums(cfg: SNConfig, mostRecent: boolean, source: string, auth: any, secret: string, ids: any, start?: string, end?: string, aggregation?: string) {
 
     let raw: any = {
@@ -207,25 +251,26 @@ export async function listAllSources() {
         nodeId: ids[0]
     })
 
-    let rows = []
-    for (const id of ids) {
-        const meta = await getNodeMetadata(id, cfg.sn, auth, secret)
+    let rows: SourceInformation[] = []
+    const chan = new SimpleChannel<SourceEvent>();
 
-        b1.update({
-            nodeId: id
-        })
+    const loop = (async () => {
+        for await(const next of chan) {
+            b1.update({
+                nodeId: next.nodeId
+            })
 
-        if (Array.isArray(meta['results'])) {
-            for (const result of meta['results']) {
-                rows.push({
-                    'nodeId': result['nodeId'],
-                    'sourceId': result['sourceId']
-                })
+            if (next.state == "information") {
+                rows.push(next)
+            } else {
+                b1.increment()
             }
         }
+    })()
 
-        b1.increment();
-    }
+    await getSources(ids, chan, cfg.sn, auth, secret)
+    chan.close()
+    await loop
 
     b1.stop()
 

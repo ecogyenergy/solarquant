@@ -1,6 +1,6 @@
 # We should get a list of all sources
 @test "solarnetwork list all sources" {
-  run node ../src/ projects source
+  run node ../src/ projects source \/\*\*
   GOOD=$(cat snippets/all_sources.txt)
   [ "$output" = "$GOOD" ]
 }

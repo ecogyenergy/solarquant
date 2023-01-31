@@ -163,6 +163,74 @@ function chunkArray<T>(arr: T[], n: number): T[][] {
     return chunks;
 }
 
+export async function listAllSources() {
+    const cfg = readConfigFile()
+
+    if (!cfg.sn) {
+        throw new Error("You must authenticate against SolarNetwork")
+    }
+
+    if (!cfg.sn.token) {
+        throw new Error("You must provide a token")
+    }
+
+    if (!cfg.sn.secret) {
+        throw new Error("You must provide a secret")
+    }
+
+    const auth = new AuthorizationV2Builder(cfg.sn.token)
+    const secret: string = cfg.sn.secret
+    const ids = await getNodeIds(cfg.sn, auth, cfg.sn.secret)
+
+    const b1 = new cliProgress.SingleBar({
+        format: 'Downloading node meta data | {bar} | nodeId={nodeId} | {value}/{total}',
+        hideCursor: true,
+        clearOnComplete: true
+    });
+
+    b1.start(ids.length, 0, {
+        nodeId: ids[0]
+    })
+
+    let rows = []
+    for (const id of ids) {
+        const meta = await getNodeMetadata(id, cfg.sn, auth, secret)
+
+        b1.update({
+            nodeId: id
+        })
+
+        if (Array.isArray(meta['results'])) {
+            for (const result of meta['results']) {
+                rows.push({
+                    'nodeId': result['nodeId'],
+                    'sourceId': result['sourceId']
+                })
+            }
+        }
+
+        b1.increment();
+    }
+
+    b1.stop()
+
+    const p = new Table({
+        columns: [
+            {
+                name: 'nodeId',
+                alignment: 'left',
+            },
+            {
+                name: 'sourceId',
+                alignment: 'left',
+            },
+        ],
+        rows: rows
+    })
+
+    p.printTable()
+}
+
 export async function listSourceMeasurements(path: string): Promise<void> {
     const cfg = readConfigFile()
 

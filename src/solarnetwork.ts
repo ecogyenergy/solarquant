@@ -27,6 +27,21 @@ async function getNodeIds(cfg: SNConfig, auth: any, secret: string) {
     return response.data.data
 }
 
+async function getNodeMetadata(nodeId: number, cfg: SNConfig, auth: any, secret: string) {
+    const url = `${cfg.url}/solarquery/api/v1/sec/datum/meta/${nodeId}`
+    const authHeader = auth.snDate(true).url(url).build(secret)
+
+    const response = await axios.get(url, {
+        headers: {
+            Authorization: authHeader,
+            "X-SN-Date": auth.requestDateHeaderValue,
+            "Accept-Encoding": "UTF8"
+        }
+    })
+
+    return response.data.data
+}
+
 async function getDatums(cfg: SNConfig, mostRecent: boolean, source: string, auth: any, secret: string, ids: any, start?: string, end?: string, aggregation?: string) {
 
     let raw: any = {

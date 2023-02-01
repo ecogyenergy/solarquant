@@ -174,12 +174,6 @@ export function parseRawDatums(response: StreamResponse): RawDatum[] {
             }
         }
 
-        if (2 + i_len + a_len + s_len < datum.length) {
-            for (let j = 0; j < s_len; j++) {
-                s.push(datum[2 + i_len + a_len + j])
-            }
-        }
-
         return [meta, timestamp, i, a, s, tags]
     })
 
@@ -215,12 +209,6 @@ export function parseAggregatedDatums(response: StreamResponse): AggregatedDatum
         }
 
         if (s_len > 0) {
-            for (let j = 0; j < s_len; j++) {
-                s.push(datum[2 + i_len + a_len + j])
-            }
-        }
-
-        if (2 + i_len + a_len + s_len < datum.length) {
             for (let j = 0; j < s_len; j++) {
                 s.push(datum[2 + i_len + a_len + j])
             }

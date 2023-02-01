@@ -1,5 +1,3 @@
-import {URL, URLSearchParams} from "url";
-import axios from "axios";
 import {AuthorizationV2Builder, DatumStreamMetadataRegistry} from "solarnetwork-api-core";
 import {readConfigFile, SNConfig} from "./config.js";
 import cliProgress, {MultiBar} from "cli-progress"
@@ -7,155 +5,136 @@ import {SimpleChannel} from "channel-ts";
 import {getDateRanges} from "./util.js";
 import moment from "moment";
 import {Table} from "console-table-printer";
+import {
+    AggregatedDatum,
+    getDatums,
+    getMeasurementDescriptor,
+    getNodeIds,
+    listSources,
+    MeasurementType, parseAggregatedDatums, parseRawDatums, RawDatum,
+    StreamMeta, StreamResponse,
+    TaggedDatum, TaggedRawDatum, TaggedStreamResponse
+} from "./solarnetwork_api.js"
 
-function encodeSolarNetworkUrl(url: any) {
-    return url.toString().replace(/\+/g, "%20") // SolarNetwork doesn't support + for space character encoding
-}
-
-async function getNodeIds(cfg: SNConfig, auth: any, secret: string) {
-    const url = `${cfg.url}/solarquery/api/v1/sec/nodes`
-    const authHeader = auth.snDate(true).url(url).build(secret)
-
-    const response = await axios.get(url, {
-        headers: {
-            Authorization: authHeader,
-            "X-SN-Date": auth.requestDateHeaderValue,
-            "Accept-Encoding": "UTF8"
-        }
-    })
-
-    return response.data.data
-}
-
-async function getDatums(cfg: SNConfig, mostRecent: boolean, source: string, auth: any, secret: string, ids: any, start?: string, end?: string, aggregation?: string) {
-
-    let raw: any = {
-        nodeIds: ids,
-        sourceId: source,
-        mostRecent: mostRecent
-    }
-
-    if (end)
-        raw.endDate = end
-
-    if (start)
-        raw.startDate = start
-
-    if (aggregation)
-        raw.aggregation = aggregation
-
-    const params = new URLSearchParams(raw)
-    const url = `${cfg.url}/solarquery/api/v1/sec/datum/stream/datum`
-
-    const fetchUrl = new URL(url)
-    fetchUrl.search = params.toString()
-    const urlString = encodeSolarNetworkUrl(fetchUrl)
-
-    const authHeader = auth.snDate(true).url(urlString).build(secret)
-
-    const response = await axios.get(urlString, {
-        headers: {
-            Authorization: authHeader,
-            "X-SN-Date": auth.requestDateHeaderValue,
-            "Accept-Encoding": "UTF8"
-        }
-    })
-
-    return response.data
-}
-
-async function listSources(cfg: SNConfig, source: string, auth: any, secret: string, ids: any): Promise<string[]> {
-    const result = await getDatums(cfg, true, source, auth, secret, ids, undefined, undefined)
-    return result.meta.map((m: any) => m['sourceId'])
-}
 
 function columnName(c: string): string {
     const meta = c.indexOf("$")
     return meta == -1 ? c : c.substring(0, meta)
 }
 
-function columnExists(m: any, name: string): boolean {
-    const columnTypes = ['i', 'a', 's']
-
-    for (const t of columnTypes) {
-        // Not all sources have all types
-        if (!m[t]) {
-            continue
-        }
-
-        const indx = m[t].findIndex((v: any) => v == name)
-        if (indx != -1) {
-            return true
-        }
-    }
-
-    return false
-}
-
-function columnValue(aggregated: boolean, c: string, row: any, m: any): string {
+function columnValue(c: string, row: TaggedDatum, m: StreamMeta): string {
     const meta = c.indexOf("$")
     const name = columnName(c)
 
-    const columnTypes = ['i', 'a', 's']
-
-    let columnType
-    let columnOffset = 0
-    let indx
-
-    for (const t of columnTypes) {
-        columnType = t
-        indx = m[t] ? m[t].findIndex((v: any) => v == name) : -1
-
-        if (indx >= 0) {
-            break
-        }
-
-        columnOffset += m[t] ? m[t].length : 0
-    }
-
-    const arrayType = aggregated && (columnType == 'i' || columnType == 'a')
-
-    if (indx < 0 || row[2 + columnOffset + indx] === undefined) {
+    const desc = getMeasurementDescriptor(m, name)
+    if (!desc) {
         return ""
     }
 
+    let metaName = ""
     if (meta != -1) {
-        const metaValue = c.substring(meta + 1)
+        metaName = c.substring(meta+1)
+    }
 
-        if (!arrayType && metaValue != "count") {
-            return row[2 + columnOffset + indx]
-        } else if (!arrayType && metaValue == "count") {
-            return "1"
+    switch (desc.type) {
+        case MeasurementType.Instantaneous: {
+
+            switch (row.state) {
+                // If it's a raw i datum, we just return the value
+                case "raw": {
+                    const [_meta, _timestamp, i, _a, _s, _tags] = row.datum
+
+                    if (i.length <= desc.index) {
+                        return ""
+                    }
+
+                    const v = i[desc.index]
+                    if (v == undefined)
+                        return ""
+
+                    return v.toString()
+                }
+
+                // Aggregated, depends on the meta value
+                case "aggregated": {
+                    const [_meta, _timestamp, i, _a, _s, _tags] = row.datum
+                    if (i.length <= desc.index) {
+                        return ""
+                    }
+
+                    const v = i[desc.index]
+                    if (v == undefined)
+                        return ""
+
+                    // Deconstruct the meta values
+                    const [av, co, min, max] = v
+
+                    switch (metaName) {
+                        case "": return av.toString()
+                        case "average": return av.toString()
+                        case "count": return co.toString()
+                        case "minimum": return min.toString()
+                        case "maximum": return max.toString()
+                        default: throw new Error(`Unrecognized meta value: ${metaName}`)
+                    }
+                }
+            }
+
         }
 
-        if (columnType == 'i') {
-            if (metaValue == "average") {
-                return row[2 + columnOffset + indx][0]
-            } else if (metaValue == "count") {
-                return row[2 + columnOffset + indx][1]
-            } else if (metaValue == "minimum") {
-                return row[2 + columnOffset + indx][2]
-            } else if (metaValue == "maximum") {
-                return row[2 + columnOffset + indx][3]
-            } else {
-                throw new Error("unknown meta description")
+        case MeasurementType.Accumulating: {
+            switch (row.state) {
+                // If it's a raw a datum, we just return the value
+                case "raw": {
+                    const [_meta, _timestamp, _i, a, _s, _tags] = row.datum
+                    if (a.length <= desc.index) {
+                        return ""
+                    }
+
+                    const v = a[desc.index]
+                    if (v == undefined)
+                        return ""
+
+                    return v.toString()
+                }
+
+                // Aggregated, depends on the meta value
+                case "aggregated": {
+                    const [_meta, _timestamp, _i, a, _s, _tags] = row.datum
+                    if (a.length <= desc.index) {
+                        return ""
+                    }
+
+                    const v = a[desc.index]
+                    if (v == undefined)
+                        return ""
+
+                    // Deconstruct the meta values
+                    const [difference, starting, ending] = v
+
+                    switch (metaName) {
+                        case "": return ending.toString()
+                        case "difference": return difference.toString()
+                        case "starting": return starting.toString()
+                        case "ending": return ending.toString()
+                        default: throw new Error(`Unrecognized meta value: ${metaName}`)
+                    }
+                }
             }
-        } else if (columnType == 'a') {
-            if (metaValue == "difference") {
-                return row[2 + columnOffset + indx][0]
-            } else if (metaValue == "starting") {
-                return row[2 + columnOffset + indx][1]
-            } else if (metaValue == "ending") {
-                return row[2 + columnOffset + indx][2]
-            } else {
-                throw new Error("unknown meta description")
-            }
-        } else {
-            throw new Error("unreachable")
         }
-    } else {
-        // return average for 'i', difference for 'a'
-        return arrayType ? row[2 + columnOffset + indx][0] : row[2 + columnOffset + indx]
+
+        case MeasurementType.Status: {
+            const [_meta, _timestamp, _i, _a, s, _tags] = row.datum
+            if (s.length <= desc.index) {
+                return ""
+            }
+
+            const v = s[desc.index]
+            if (v == undefined)
+                return ""
+
+            return v.toString()
+        }
     }
 }
 
@@ -190,7 +169,7 @@ export async function listSourceMeasurements(path: string): Promise<void> {
     const result = await getDatums(cfg.sn, true, path, auth, secret, ids, undefined, undefined)
 
     let rows = []
-    for (const source of result.meta) {
+    for (const source of result.response.meta) {
         if (source['i']) {
             for (const i of source['i']) {
                 rows.push({
@@ -256,7 +235,7 @@ export async function listSourceMeasurements(path: string): Promise<void> {
 }
 
 interface SNChunk {
-    datums: any,
+    response: TaggedStreamResponse,
     total: number
 }
 
@@ -282,16 +261,15 @@ async function fetchSNDatumsProducer(cfg: SNConfig, chan: SimpleChannel<SNChunk>
 
                 b.update(total, {sourceId: source})
 
-                const datums = await getDatums(cfg, false, source, auth, secret, ids, s, e, opts['aggregation'])
+                const response = await getDatums(cfg, false, source, auth, secret, ids, s, e, opts['aggregation'])
 
                 chan.send({
-                    datums: datums,
+                    response: response,
                     total: total
                 })
             }
         } catch (e: any) {
-            console.error(e)
-            console.log("ERROR: " + e.config.url)
+            console.error(`Source ${source} failed: ${e}`)
         }
         bar.remove(b)
     }
@@ -307,28 +285,44 @@ async function fetchSNDatumsConsumer(chan: SimpleChannel<SNChunk>, bar: MultiBar
     const haveTimestamp = columns.findIndex(col => col === "timestamp") != -1
 
     for await(const next of chan) {
-        const datums = next.datums
+        const chunk = next.response
 
         b.increment()
 
-        if (!datums.data || !datums.meta) {
+        if (!chunk.response.success) {
             continue
         }
 
-        const d = new DatumStreamMetadataRegistry(datums.meta)
+        const d = new DatumStreamMetadataRegistry(chunk.response.meta)
 
-        for (const row of datums.data) {
+        let rows: RawDatum[] | AggregatedDatum[] = []
+        switch (chunk.state) {
+            case "raw": {
+                rows = parseRawDatums(chunk.response)
+                break
+            }
+            case "aggregated": {
+                rows = parseAggregatedDatums(chunk.response)
+                break
+            }
+        }
+
+        for (const row of rows) {
             if (!row) {
                 continue
             }
 
-            const m = d.metadataAt(row[0])
+            const m = d.metadataAt(row[0]) as StreamMeta
+            const columnExists = (name: string): boolean => {
+                const desc = getMeasurementDescriptor(m, columnName(name))
+                return desc != undefined
+            }
 
             const foundColumns = columns.filter(c => {
                 if (c == "timestamp")
                     return true
 
-                return columnExists(m, columnName(c))
+                return columnExists(c)
             })
 
             if (foundColumns.length != columns.length) {
@@ -360,21 +354,43 @@ async function fetchSNDatumsConsumer(chan: SimpleChannel<SNChunk>, bar: MultiBar
                 const sep = (i < (columns.length - 1)) ? ',' : ''
 
                 if (c == "timestamp") {
+
                     // TODO: ignoring end?
-                    if (opts['aggregation'] != undefined) {
-                        if (row[1][0]) {
-                            process.stdout.write(row[1][0].toString())
+
+                    switch (chunk.state) {
+                        case "raw": {
+                            const tRow = row as RawDatum
+                            process.stdout.write(tRow[1].toString())
+                            break
                         }
-                    } else {
-                        if (row[1]) {
-                            process.stdout.write(row[1].toString())
+                        case "aggregated": {
+                            const tRow = row as AggregatedDatum
+                            const [_meta, timestamp, _i, _a, _status, _tags] = tRow
+                            process.stdout.write(timestamp[0].toString())
                         }
                     }
+
                     process.stdout.write(sep)
                     continue
                 }
 
-                const val = columnValue(opts['aggregation'] != undefined, c, row, m)
+                let val
+                switch (chunk.state) {
+                    case "raw": {
+                        val = val = columnValue(c, {
+                            state: "raw",
+                            datum: row as RawDatum,
+                        }, m)
+                        break
+                    }
+                    case "aggregated": {
+                        val = val = columnValue(c, {
+                            state: "aggregated",
+                            datum: row as AggregatedDatum,
+                        }, m)
+                        break
+                    }
+                }
 
                 if (val !== undefined) {
                     process.stdout.write(val.toString())
@@ -386,6 +402,7 @@ async function fetchSNDatumsConsumer(chan: SimpleChannel<SNChunk>, bar: MultiBar
         }
     }
 
+    process.stdout.write("\n")
 }
 
 export async function fetchSNDatums(source: string, format: string, start: string, end: string, opts: any): Promise<void> {
@@ -417,20 +434,25 @@ export async function fetchSNDatums(source: string, format: string, start: strin
         forceRedraw: true,
     }, cliProgress.Presets.rect)
 
-    console.log("sourceId,objectId," + format)
+    try {
+        console.log("sourceId,objectId," + format)
 
-    const secret: string = cfg.sn.secret
-    const parallel: number = parseInt(opts['parallel'])
+        const secret: string = cfg.sn.secret
+        const parallel: number = parseInt(opts['parallel'])
 
-    const chan = new SimpleChannel<SNChunk>();
-    const groups = chunkArray(sources, parallel)
-    const p1 = fetchSNDatumsConsumer(chan, bar, sources.length * coefficient, auth, secret, ids, format, start, end, opts)
-    const sncfg = cfg.sn
-    const p2 = Array.from(Array(parallel).keys()).map(async i => fetchSNDatumsProducer(sncfg, chan, bar, auth, secret, ids, groups[i], format, start, end, opts))
+        const chan = new SimpleChannel<SNChunk>();
+        const groups = chunkArray(sources, parallel)
+        const p1 = fetchSNDatumsConsumer(chan, bar, sources.length * coefficient, auth, secret, ids, format, start, end, opts)
+        const sncfg = cfg.sn
+        const p2 = Array.from(Array(parallel).keys()).map(async i => fetchSNDatumsProducer(sncfg, chan, bar, auth, secret, ids, groups[i], format, start, end, opts))
 
-    await Promise.all(p2)
-    chan.close()
-    await p1
+        await Promise.all(p2)
+        chan.close()
+
+        await p1
+    } catch(e) {
+        console.error(e)
+    }
 
     bar.stop()
 }

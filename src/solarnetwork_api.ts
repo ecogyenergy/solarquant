@@ -140,6 +140,17 @@ export interface TaggedAggregatedDatum {
 
 export type TaggedDatum = TaggedRawDatum | TaggedAggregatedDatum
 
+// We need to sanitize the datum values given from the SolarNetwork API because they are very rarely not the correct
+// types. This causes issues later on, so we make sure undefined or null values are converted to their typed
+// counterparts -- NaN for numbers and "" for strings
+function ensureNumberType(value: any): number {
+    return (typeof value === 'number') ? value : NaN
+}
+
+function ensureStringType(value: any): string {
+    return (typeof value === 'string') ? value : ""
+}
+
 export function parseRawDatums(response: StreamResponse): RawDatum[] {
 
     return response.data.map(datum => {
@@ -158,19 +169,19 @@ export function parseRawDatums(response: StreamResponse): RawDatum[] {
 
         if (i_len > 0) {
             for (let j = 0; j < i_len; j++) {
-                i.push(datum[2 + j])
+                i.push(ensureNumberType(datum[2 + j]))
             }
         }
 
         if (a_len > 0) {
             for (let j = 0; j < a_len; j++) {
-                a.push(datum[2 + i_len + j])
+                a.push(ensureNumberType(datum[2 + i_len + j]))
             }
         }
 
         if (s_len > 0) {
             for (let j = 0; j < s_len; j++) {
-                s.push(datum[2 + i_len + a_len + j])
+                s.push(ensureStringType(datum[2 + i_len + a_len + j]))
             }
         }
 
@@ -198,19 +209,27 @@ export function parseAggregatedDatums(response: StreamResponse): AggregatedDatum
 
         if (i_len > 0) {
             for (let j = 0; j < i_len; j++) {
-                i.push(datum[2 + j])
+                if (!Array.isArray(datum[2 + j])) {
+                    i.push([NaN, NaN, NaN, NaN])
+                } else {
+                    i.push(datum[2 + j].map((v: any) => ensureNumberType(v)))
+                }
             }
         }
 
         if (a_len > 0) {
             for (let j = 0; j < a_len; j++) {
-                a.push(datum[2 + i_len + j])
+                if (!Array.isArray(datum[2 + i_len + j])) {
+                    a.push([NaN, NaN, NaN])
+                } else {
+                    a.push(datum[2 + i_len + j].map((v: any) => ensureNumberType(v)))
+                }
             }
         }
 
         if (s_len > 0) {
             for (let j = 0; j < s_len; j++) {
-                s.push(datum[2 + i_len + a_len + j])
+                s.push(ensureStringType(datum[2 + i_len + a_len + j]))
             }
         }
 

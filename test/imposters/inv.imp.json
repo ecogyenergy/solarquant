@@ -1,0 +1,36 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "endpoint": "/solarquery/api/v1/sec/datum/stream/datum",
+      "params": {
+        "sourceId": "inv1",
+        "mostRecent": "true"
+      }
+    },
+    "response": {
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "bodyFile": "inv_datums_most_recent.json"
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "endpoint": "/solarquery/api/v1/sec/datum/stream/datum",
+      "params": {
+        "sourceId": "inv1",
+        "aggregation": "Day"
+      }
+    },
+    "response": {
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "bodyFile": "inv_datums.json"
+    }
+  }
+]

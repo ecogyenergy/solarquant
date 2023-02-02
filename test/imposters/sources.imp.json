@@ -1,0 +1,19 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "endpoint": "/solarquery/api/v1/sec/datum/stream/datum",
+      "params": {
+        "sourceId": "/**",
+        "mostRecent": "true"
+      }
+    },
+    "response": {
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "bodyFile": "most_recent.json"
+    }
+  }
+]

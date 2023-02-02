@@ -174,3 +174,26 @@ results from datums which provide both `voltage` and `watts` measurements.
 
 To allow partial rows (for instance, rows which only contain `voltage`) use the `--partial` flag.
 To allow empty rows, use the `--empty` flag.
+
+
+### Testing The SolarQuant Environment
+
+To test the SolarQuant environment, you should start an instance of
+killgrave[1] using the configuration in the test directory. You can then
+use bats-core[2] on the test directory to run the `*.bats` files.
+
+Terminal A:
+```shell
+$ go install github.com/friendsofgo/killgrave/cmd/killgrave@latest
+$ cd test/
+$ ~/go/bin/killgrave http -c ./config.yml
+```
+
+Terminal B:
+```shell
+$ cd test/
+$ npm exec --prefix ../ -c 'bats *.bats'
+```
+
+[1]: https://github.com/friendsofgo/killgrave
+[2]: https://github.com/bats-core/bats-core/

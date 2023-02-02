@@ -1,0 +1,101 @@
+{
+  "success": true,
+  "meta": [
+    {
+      "streamId": "71d15bc8-7105-4f1e-9fc3-e2769e3775f1",
+      "zone": "America/New_York",
+      "kind": "n",
+      "objectId": 1,
+      "sourceId": "pyr1",
+      "i": [
+        "irradiance",
+        "temperature"
+      ],
+      "a": [
+        "irradianceHours"
+      ]
+    },
+    {
+      "streamId": "3e252770-4691-4720-bcda-714945357f12",
+      "zone": "America/New_York",
+      "kind": "n",
+      "objectId": 2,
+      "sourceId": "inv1",
+      "i": [
+        "watts",
+        "current",
+        "dcPower",
+        "voltage",
+        "dcVoltage",
+        "frequency",
+        "powerFactor",
+        "apparentPower",
+        "reactivePower",
+        "temp_heatSink",
+        "temp",
+        "temp_other",
+        "temp_transformer",
+        "current_a",
+        "current_b",
+        "current_c",
+        "dcCurrent",
+        "voltage_a",
+        "voltage_b",
+        "voltage_c",
+        "voltage_ab",
+        "voltage_bc",
+        "voltage_ca"
+      ],
+      "a": [
+        "wattHours"
+      ],
+      "s": [
+        "phase",
+        "events",
+        "opState",
+        "sunsOpState"
+      ]
+    }
+  ],
+  "data": [
+    [
+      0,
+      1674642768011,
+      0,
+      -3.3899405,
+      2070510.463043
+    ],
+    [
+      1,
+      1674596430006,
+      0,
+      0,
+      0,
+      278.1,
+      1.3,
+      60,
+      0,
+      0,
+      0,
+      17.08,
+      null,
+      null,
+      null,
+      0,
+      0,
+      0,
+      0,
+      277,
+      278.5,
+      278.8,
+      487.1,
+      502,
+      470.2,
+      97791096,
+      "Total",
+      "0",
+      "2",
+      "3"
+    ]
+  ]
+}

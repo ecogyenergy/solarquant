@@ -1,0 +1,15 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "endpoint": "/solarquery/api/v1/sec/nodes"
+    },
+    "response": {
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "bodyFile": "nodes.json"
+    }
+  }
+]

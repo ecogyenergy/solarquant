@@ -7,7 +7,9 @@ SolarNetwork data, both of which are free and open source.
 
 ### Documentation
 
-For documentation, compile the Sphinx[1] documentation in the `docs` directory:
+A live pre-built version of the SolarQuant documentation is available here: https://ecogyenergy.github.io/solarquant
+
+To build the latest documentation from source, compile the Sphinx[1] documentation in the `docs` directory:
 
 ```shell
 $ cd docs

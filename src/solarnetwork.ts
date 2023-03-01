@@ -5,6 +5,7 @@ import {SimpleChannel} from "channel-ts";
 import {getDateRanges} from "./util.js";
 import moment from "moment";
 import {Table} from "console-table-printer";
+import randomWords from "random-words"
 import {
     AggregatedDatum,
     getDatums,
@@ -13,7 +14,10 @@ import {
     listSources,
     MeasurementType, parseAggregatedDatums, parseRawDatums, RawDatum,
     StreamMeta, StreamResponse,
-    TaggedDatum, TaggedRawDatum, TaggedStreamResponse
+    TaggedDatum, TaggedRawDatum, TaggedStreamResponse,
+    ExportTypeInfo, listExportType, submitExportTask, ExportSettingsSpecifier,
+    listExportTasks,
+    ExportDatumFilter, ExportDataConfiguration, ExportDestinationConfiguration, ExportOutputConfiguration, ExportTask
 } from "./solarnetwork_api.js"
 
 
@@ -162,9 +166,9 @@ export async function listSourceMeasurements(path: string): Promise<void> {
         throw new Error("You must provide a secret")
     }
 
-    const auth = new AuthorizationV2Builder(cfg.sn.token)
+    const auth = new AuthorizationV2Builder(cfg.sn.token).saveSigningKey(cfg.sn.secret)
     const secret: string = cfg.sn.secret
-    const ids = await getNodeIds(cfg.sn, auth, cfg.sn.secret)
+    const ids = await getNodeIds(cfg.sn, auth)
 
     const result = await getDatums(cfg.sn, true, path, auth, secret, ids, undefined, undefined)
 
@@ -420,9 +424,9 @@ export async function fetchSNDatums(source: string, format: string, start: strin
         throw new Error("You must provide a secret")
     }
 
-    const auth = new AuthorizationV2Builder(cfg.sn.token)
+    const auth = new AuthorizationV2Builder(cfg.sn.token).saveSigningKey(cfg.sn.secret)
 
-    const ids = await getNodeIds(cfg.sn, auth, cfg.sn.secret)
+    const ids = await getNodeIds(cfg.sn, auth)
     const sources = await listSources(cfg.sn, source, auth, cfg.sn.secret, ids)
     const coefficient = getDateRanges(moment(start), moment(end)).length
 
@@ -456,3 +460,248 @@ export async function fetchSNDatums(source: string, format: string, start: strin
 
     bar.stop()
 }
+
+async function fetchExportList(t: string): Promise<void> {
+    const cfg = readConfigFile()
+
+    if (!cfg.sn) {
+        throw new Error("You must authenticate against SolarNetwork")
+    }
+
+    if (!cfg.sn.token) {
+        throw new Error("You must provide a token")
+    }
+
+    if (!cfg.sn.secret) {
+        throw new Error("You must provide a secret")
+    }
+
+    const result = await listExportType(t, cfg.sn)
+
+    for (const r of result) {
+        console.log(`id: ${r.id}`)
+        console.log(`locale: ${r.locale}`)
+        console.log(`localized name: ${r.localizedName}`)
+        console.log(`localized description: ${r.localizedDescription}`)
+
+	const opts = r.localizedInfoMessages
+
+	if (typeof opts === 'object' && !Array.isArray(opts) && opts !== null) {
+	    for (const [key, value] of Object.entries(opts)) {
+                console.log(` - Property '${key}': ${value}`)
+	    }
+	}
+    }
+}
+
+export async function fetchCompressionTypes(): Promise<void> {
+    await fetchExportList("compression")
+}
+
+export async function fetchDestinationTypes(): Promise<void> {
+    await fetchExportList("destination")
+}
+
+export async function fetchOutputTypes(): Promise<void> {
+    await fetchExportList("output")
+}
+
+export async function fetchExportTasks(): Promise<void> {
+    const cfg = readConfigFile()
+
+    if (!cfg.sn) {
+        throw new Error("You must authenticate against SolarNetwork")
+    }
+
+    if (!cfg.sn.token) {
+        throw new Error("You must provide a token")
+    }
+
+    if (!cfg.sn.secret) {
+        throw new Error("You must provide a secret")
+    }
+
+    const auth = new AuthorizationV2Builder(cfg.sn.token).saveSigningKey(cfg.sn.secret)
+
+	const tasks = await listExportTasks(cfg.sn)
+	for (const task of tasks) {
+		const config = task['config']
+		const t = task['task']
+
+		console.log(config['name'])
+		if (t['statusKey'] !== undefined) {
+			console.log(` - Status: ${t['statusKey']}`)
+		}
+		if (t['message'] !== undefined) {
+			console.log(` - Message: ${t['message']}`)
+		}
+	}
+}
+
+export async function startExportTask(opts: any): Promise<void> {
+    const cfg = readConfigFile()
+
+    if (!cfg.sn) {
+        throw new Error("You must authenticate against SolarNetwork")
+    }
+
+    if (!cfg.sn.token) {
+        throw new Error("You must provide a token")
+    }
+
+    if (!cfg.sn.secret) {
+        throw new Error("You must provide a secret")
+    }
+
+    const auth = new AuthorizationV2Builder(cfg.sn.token).saveSigningKey(cfg.sn.secret)
+    const ids = await getNodeIds(cfg.sn, auth)
+
+    if (opts['start'] === undefined || opts['end'] === undefined) {
+        throw new Error("Start and end options must be provided")
+    }
+
+    if (opts['source'] === undefined) {
+        throw new Error("Source expression must be provided")
+    }
+
+    if (opts['output'] === undefined) {
+        throw new Error("Output identifier must be provided")
+    }
+
+    if (opts['destination'] === undefined) {
+        throw new Error("Destination identifier must be provided")
+    }
+
+    const start = moment(opts['start'])
+    const end = moment(opts['end'])
+    const name = randomWords({ exactly: 4, join: '-' })
+
+	const compressionTypes = await listExportType("compression", cfg.sn)
+    const outputTypes = await listExportType("output", cfg.sn)
+    const destinationTypes = await listExportType("destination", cfg.sn)
+
+	// Get the right type
+	let compressionType: ExportTypeInfo | undefined = compressionTypes.find((t: ExportTypeInfo) => {
+		return t.id === opts['compression'] || t.localizedName === opts['compression']
+	})
+	let outputType: ExportTypeInfo | undefined = outputTypes.find((t: ExportTypeInfo) => {
+		return t.id === opts['output'] || t.localizedName === opts['output']
+	})
+	let destinationType: ExportTypeInfo | undefined = destinationTypes.find((t: ExportTypeInfo) => {
+		return t.id === opts['destination'] || t.localizedName === opts['destination']
+	})
+
+	if (compressionType == undefined) {
+		throw new Error(`Unknown compression type ${opts['compression']}`)
+	}
+	if (outputType == undefined) {
+		throw new Error(`Unknown output type ${opts['output']}`)
+	}
+	if (destinationType == undefined) {
+		throw new Error(`Unknown destination type ${opts['destination']}`)
+	}
+
+	const outputProps = opts['outputProp'].map((p: string) => {
+		const both = p.split(":")
+		const value = (outputType as ExportTypeInfo).settingSpecifiers.find((s: ExportSettingsSpecifier) => s.key === both[0])
+		return [both, value]
+	})
+	const destinationProps = opts['destinationProp'].map((p: string) => {
+		const both = p.split(":")
+		const value = (destinationType as ExportTypeInfo).settingSpecifiers.find((s: ExportSettingsSpecifier) => s.key === both[0])
+		return [both, value]
+	})
+
+	// Verify options
+	for (const prop of outputProps) {
+		if (prop[1] === undefined) {
+			throw new Error(`Output property not found: ${prop}`)
+		}
+	}
+	for (const prop of destinationProps) {
+		if (prop[1] === undefined) {
+			throw new Error(`Destination property not found: ${prop}`)
+		}
+	}
+
+    const filter: ExportDatumFilter = {
+        startDate: start.valueOf(),
+        endDate: end.valueOf(),
+        aggregation: opts['aggregation'],
+        nodeIds: ids,
+        sourceId: opts['source'],
+    }
+    const data: ExportDataConfiguration = {
+        datumFilter: filter,
+    }
+
+	let outputServiceProperties: Record<string, any> = {}
+	for (const prop of outputProps) {
+		let [[key, value], t] = prop
+
+		if (t['type'] === "net.solarnetwork.settings.ToggleSettingSpecifier") {
+			outputServiceProperties[prop[0][0]] = prop[0][1] === "true"
+		} else {
+			outputServiceProperties[prop[0][0]] = <any>prop[0][1]
+		}
+	}
+
+	let destinationServiceProperties: Record<string, any> = {}
+	for (const prop of destinationProps) {
+		let [[key, value], t] = prop
+
+		if (t['type'] === "net.solarnetwork.settings.ToggleSettingSpecifier") {
+			destinationServiceProperties[prop[0][0]] = prop[0][1] === "true"
+		} else {
+			destinationServiceProperties[prop[0][0]] = <any>prop[0][1]
+		}
+	}
+
+    const output: ExportOutputConfiguration = {
+		compressionTypeKey: compressionType.id,
+		serviceIdentifier: outputType.id,
+		serviceProperties: outputServiceProperties
+    }
+
+	const destination: ExportDestinationConfiguration = {
+		serviceIdentifier: destinationType.id,
+		serviceProperties: destinationServiceProperties
+	}
+
+	const request: ExportTask = {
+    	name: name,
+    	dataConfiguration: data,
+    	outputConfiguration: output,
+    	destinationConfiguration: destination
+	}
+
+	await submitExportTask(request, cfg.sn)
+
+	// Wait for the API to give us an answer
+	// TODO: types
+	while (true) {
+		const tasks = await listExportTasks(cfg.sn)
+		const task = tasks.find((t: any) => t['config']['name'] === name)
+		if (task == undefined) {
+			console.error(`Warning: Lost track of task '${name}', aborting.`)
+			return
+		}
+
+		const result = task['task']
+
+		if (!result['success']) {
+			if (result['statusKey'] === 'q' || result['message'] == undefined) {
+		   		continue
+			}
+
+			// Error
+			if (result['statusKey'] === 'c') {
+				console.error(`Export task failed: ${result['message']}`)
+				break
+			}
+		} else {
+			break
+		}
+	}
+}
+

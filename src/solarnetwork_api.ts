@@ -1,3 +1,5 @@
+import {AuthorizationV2Builder} from "solarnetwork-api-core";
+import {HttpHeaders, HttpContentType} from "solarnetwork-api-core";
 import {SNConfig} from "./config";
 import axios from "axios";
 import {URL, URLSearchParams} from "url";
@@ -7,9 +9,9 @@ interface NodesResponse {
     data: number[]
 }
 
-export async function getNodeIds(cfg: SNConfig, auth: any, secret: string): Promise<number[]> {
+export async function getNodeIds(cfg: SNConfig, auth: any): Promise<number[]> {
     const url = `${cfg.url}/solarquery/api/v1/sec/nodes`
-    const authHeader = auth.snDate(true).url(url).build(secret)
+    const authHeader = auth.reset().snDate(true).url(url).buildWithSavedKey()
 
     const response = await axios.get<NodesResponse>(url, {
         headers: {
@@ -28,6 +30,48 @@ export async function getNodeIds(cfg: SNConfig, auth: any, secret: string): Prom
 
 function encodeSolarNetworkUrl(url: any) {
     return url.toString().replace(/\+/g, "%20") // SolarNetwork doesn't support + for space character encoding
+}
+
+export interface ExportSettingsSpecifier {
+    key: string
+    defaultValue: any
+    type: string
+    // ignored
+}
+
+// https://github.com/SolarNetwork/solarnetwork/wiki/SolarUser-Datum-Export-API#list-compression-types-response
+export interface ExportTypeInfo {
+    id: string
+    settingSpecifiers: ExportSettingsSpecifier[]
+    locale: string
+    localizedName: string
+    localizedDescription: string
+    localizedInfoMessages: any
+}
+
+export interface ExportResponse<T> {
+    success: boolean
+    data: T
+}
+
+export async function listExportType(t: string, cfg: SNConfig): Promise<ExportTypeInfo[]> {
+    const url = `${cfg.url}/solaruser/api/v1/sec/user/export/services/${t}`
+    const auth = new AuthorizationV2Builder(cfg.token).saveSigningKey(cfg.secret)
+    const authHeader = auth.snDate(true).url(url).build(cfg.secret)
+
+    const response = await axios.get<ExportResponse<ExportTypeInfo[]>>(url, {
+        headers: {
+            Authorization: authHeader,
+            "X-SN-Date": auth.requestDateHeaderValue,
+            "Accept-Encoding": "UTF8"
+        }
+    })
+
+    if (!response.data.success) {
+        throw new Error(`SolarNetwork API call failed: ${url}`)
+    }
+
+    return response.data.data
 }
 
 export interface StreamMeta {
@@ -351,4 +395,79 @@ export async function getDatums(cfg: SNConfig,
 export async function listSources(cfg: SNConfig, source: string, auth: any, secret: string, ids: any): Promise<string[]> {
     const result = await getDatums(cfg, true, source, auth, secret, ids, undefined, undefined)
     return result.response.meta.map((m: any) => m['sourceId'])
+}
+
+export interface ExportDatumFilter {
+    startDate: number // epoch MS
+    endDate: number // epoch MS
+    aggregation?: string
+    nodeId?: number
+    nodeIds?: number[]
+    sourceId?: string
+    sourceIds?: string[]
+    nodeIdMaps?: string[]
+    sourceIdMaps?: string[]
+}
+
+export interface ExportDataConfiguration {
+    datumFilter: ExportDatumFilter
+}
+
+export interface ExportOutputConfiguration {
+    compressionTypeKey: string
+    serviceIdentifier: string
+    serviceProperties: Record<string, any>
+}
+
+export interface ExportDestinationConfiguration {
+    serviceIdentifier: string
+    serviceProperties: Record<string, any>
+}
+
+export interface ExportTask {
+    name: string,
+    dataConfiguration: ExportDataConfiguration,
+    outputConfiguration: ExportOutputConfiguration,
+    destinationConfiguration: ExportDestinationConfiguration
+}
+
+export async function submitExportTask(task: ExportTask, cfg: SNConfig): Promise<void> {
+
+    const url = `${cfg.url}/solaruser/api/v1/sec/user/export/adhoc`
+    const js = JSON.stringify(task)
+
+    const auth = new AuthorizationV2Builder(cfg.token).saveSigningKey(cfg.secret)
+    let authHeader = auth.snDate(true).method("POST").contentType("application/json; charset=UTF-8").url(url).computeContentDigest(js).build(cfg.secret)
+
+    let headers: Record<string, any> = {}
+    headers[HttpHeaders.DIGEST] = auth.httpHeaders.firstValue(HttpHeaders.DIGEST)
+    headers[HttpHeaders.X_SN_DATE] = auth.requestDateHeaderValue
+    headers[HttpHeaders.AUTHORIZATION] = authHeader
+    headers[HttpHeaders.CONTENT_TYPE] = "application/json; charset=UTF-8"
+
+    const response = await axios.post<ExportResponse<null>>(url, js, { headers: headers })
+
+    if (!response.data.success) {
+        throw new Error(`SolarNetwork API call failed: ${url}`)
+    }
+}
+
+export async function listExportTasks(cfg: SNConfig): Promise<any> {
+    const url = `${cfg.url}/solaruser/api/v1/sec/user/export/adhoc`
+    const auth = new AuthorizationV2Builder(cfg.token).saveSigningKey(cfg.secret)
+    const authHeader = auth.snDate(true).method("GET").url(url).build(cfg.secret)
+
+    const response = await axios.get<ExportResponse<any>>(url, {
+        headers: {
+            Authorization: authHeader,
+            "X-SN-Date": auth.requestDateHeaderValue,
+            "Accept-Encoding": "UTF8"
+        }
+    })
+
+    if (!response.data.success) {
+        throw new Error(`SolarNetwork API call failed: ${url}`)
+    }
+
+    return response.data.data
 }

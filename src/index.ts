@@ -5,7 +5,7 @@ process.env.NODE_NO_WARNINGS = "1";
 import {Command} from "commander";
 import {listAMSProjects, listAMSSites, listAMSSources, listEvents} from "./ams.js"
 import {authenticateAMS, authenticateSolarNetwork} from "./config.js";
-import {fetchSNDatums, listSourceMeasurements} from "./solarnetwork.js";
+import {fetchSNDatums, listSourceMeasurements, fetchCompressionTypes, fetchDestinationTypes, fetchOutputTypes, fetchExportTasks, startExportTask} from "./solarnetwork.js";
 
 const quant = new Command("sqc")
 const config = new Command("config").description("Manage authenticated sessions")
@@ -98,6 +98,80 @@ datums
         try {
             const opts = datums.opts()
             await fetchSNDatums(source, format, start, end, opts)
+        } catch (e: any) {
+            console.error(e)
+            console.log(e.config.url)
+        }
+    })
+
+datums
+    .command("compression-types")
+    .description("List export compression types")
+    .action(async () => {
+        try {
+            await fetchCompressionTypes()
+        } catch (e: any) {
+            console.error(e)
+            console.log(e.config.url)
+        }
+    })
+
+datums
+    .command("destination-types")
+    .description("List export destination types")
+    .action(async () => {
+        try {
+            await fetchDestinationTypes()
+        } catch (e: any) {
+            console.error(e)
+            console.log(e.config.url)
+        }
+    })
+
+datums
+    .command("output-types")
+    .description("List export output types")
+    .action(async () => {
+        try {
+            await fetchOutputTypes()
+        } catch (e: any) {
+            console.error(e)
+            console.log(e.config.url)
+        }
+    })
+
+datums
+    .command("exports")
+    .description("List export tasks")
+    .action(async () => {
+        try {
+            await fetchExportTasks()
+        } catch (e: any) {
+            console.error(e)
+            console.log(e.config.url)
+        }
+    })
+
+function collect (val: string, memo: string[]): string[] {
+    memo.push(val);
+    return memo;
+}
+
+datums
+    .option("--start <startDate>", "Start date for query")
+    .option("--end <endDate>", "Start date for query")
+    .option("-s, --source <sourceId>", "Source ID pattern")
+    .option("--compression <compressionId>", "Compression identifier")
+    .option("--output <outputId>", "Output identifier")
+    .option("--output-prop <key>", "Output property (key:value)", collect, [])
+    .option("--destination <destinationId>", "Destination identifier")
+    .option("--destination-prop <key>", "Destination property (key:value)", collect, [])
+    .command("export")
+    .description("Export data")
+    .action(async () => {
+        try {
+            const opts = datums.opts()
+            await startExportTask(opts)
         } catch (e: any) {
             console.error(e)
             console.log(e.config.url)

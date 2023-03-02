@@ -180,12 +180,12 @@ export async function listSourceMeasurements(path: string): Promise<Result<void,
 
     const ids = await getNodeIds(cfg.sn)
     if (ids.isErr) {
-        return Result.err(ids.error)
+        return Result.err(new Error(`Failed to get node IDS: ${ids.error.message}`))
     }
 
     const result = await getDatums(cfg.sn, true, path, ids.value, undefined, undefined)
     if (result.isErr) {
-        return Result.err(result.error)
+        return Result.err(new Error(`Failed to get matching source IDS: ${result.error}`))
     }
 
     let rows = []
@@ -554,7 +554,11 @@ export async function fetchExportTasks(): Promise<Result<void, Error>> {
     }
 
     const tasks = await listExportTasks(cfg.sn)
-    for (const task of tasks) {
+    if (tasks.isErr) {
+        return Result.err(new Error(`Failed to get export tasks: ${tasks.error.message}`))
+    }
+
+    for (const task of tasks.value) {
         const config = task['config']
         const t = task['task']
 
@@ -738,7 +742,12 @@ export async function startExportTask(opts: any): Promise<Result<void, Error>> {
     // TODO: types
     while (true) {
         const tasks = await listExportTasks(cfg.sn)
-        const task = tasks.find((t: any) => t['config']['name'] === name)
+        if (tasks.isErr) {
+            return Result.err(new Error(`Failed to get export tasks: ${tasks.error.message}`))
+        }
+
+        const task = tasks.value.find((t: any) => t['config']['name'] === name)
+
         if (task == undefined) {
             return Result.err(new Error(`Warning: Lost track of task '${name}', aborting.`))
         }

@@ -79,7 +79,7 @@ export async function listExportType(t: string, cfg: SNConfig): Promise<Result<E
         }
 
         return Result.ok(response.data.data)
-    } catch(e) {
+    } catch (e) {
         return Result.err(new Error((e as Error).message))
     }
 }
@@ -449,7 +449,7 @@ export interface ExportTask {
     destinationConfiguration: ExportDestinationConfiguration
 }
 
-export async function submitExportTask(task: ExportTask, cfg: SNConfig): Promise<void> {
+export async function submitExportTask(task: ExportTask, cfg: SNConfig): Promise<Result<void, Error>> {
 
     const url = `${cfg.url}/solaruser/api/v1/sec/user/export/adhoc`
     const js = JSON.stringify(task)
@@ -463,29 +463,39 @@ export async function submitExportTask(task: ExportTask, cfg: SNConfig): Promise
     headers[HttpHeaders.AUTHORIZATION] = authHeader
     headers[HttpHeaders.CONTENT_TYPE] = "application/json; charset=UTF-8"
 
-    const response = await axios.post<ExportResponse<null>>(url, js, {headers: headers})
+    try {
+        const response = await axios.post<ExportResponse<null>>(url, js, {headers: headers})
 
-    if (!response.data.success) {
-        throw new Error(`SolarNetwork API call failed: ${url}`)
+        if (!response.data.success) {
+            return Result.err(new Error(`SolarNetwork API call failed: ${url}`))
+        }
+    } catch (e) {
+        return Result.err(new Error((e as Error).message))
     }
+
+    return Result.ok(void (0))
 }
 
-export async function listExportTasks(cfg: SNConfig): Promise<any> {
+export async function listExportTasks(cfg: SNConfig): Promise<Result<any, Error>> {
     const url = `${cfg.url}/solaruser/api/v1/sec/user/export/adhoc`
     const auth = new AuthorizationV2Builder(cfg.token).saveSigningKey(cfg.secret)
     const authHeader = auth.snDate(true).method("GET").url(url).build(cfg.secret)
 
-    const response = await axios.get<ExportResponse<any>>(url, {
-        headers: {
-            Authorization: authHeader,
-            "X-SN-Date": auth.requestDateHeaderValue,
-            "Accept-Encoding": "UTF8"
+    try {
+        const response = await axios.get<ExportResponse<any>>(url, {
+            headers: {
+                Authorization: authHeader,
+                "X-SN-Date": auth.requestDateHeaderValue,
+                "Accept-Encoding": "UTF8"
+            }
+        })
+
+        if (!response.data.success) {
+            return Result.err(new Error(`SolarNetwork API call failed: ${url}`))
         }
-    })
 
-    if (!response.data.success) {
-        throw new Error(`SolarNetwork API call failed: ${url}`)
+        return Result.ok(response.data.data)
+    } catch (e) {
+        return Result.err(new Error((e as Error).message))
     }
-
-    return response.data.data
 }

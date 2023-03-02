@@ -74,13 +74,12 @@ projects
     .command("source [path]")
     .description("Show measurements given by source")
     .action(async (source?: string) => {
-        try {
-            if (!source) {
-                source = "/**"
-            }
-            await listSourceMeasurements(source)
-        } catch (e) {
-            console.error(e)
+        if (!source) {
+            source = "/**"
+        }
+        const result = await listSourceMeasurements(source)
+        if (result.isErr) {
+            console.error(result.error.message)
         }
     })
 

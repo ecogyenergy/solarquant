@@ -5,7 +5,15 @@ process.env.NODE_NO_WARNINGS = "1";
 import {Command} from "commander";
 import {listAMSProjects, listAMSSites, listAMSSources, listEvents} from "./ams.js"
 import {authenticateAMS, authenticateSolarNetwork} from "./config.js";
-import {fetchSNDatums, listSourceMeasurements, fetchCompressionTypes, fetchDestinationTypes, fetchOutputTypes, fetchExportTasks, startExportTask} from "./solarnetwork.js";
+import {
+    fetchSNDatums,
+    listSourceMeasurements,
+    fetchCompressionTypes,
+    fetchDestinationTypes,
+    fetchOutputTypes,
+    fetchExportTasks,
+    startExportTask
+} from "./solarnetwork.js";
 
 const quant = new Command("sqc")
 const config = new Command("config").description("Manage authenticated sessions")
@@ -95,12 +103,10 @@ datums
     .command("stream <source> <format> <start> <end>")
     .description("Dump datums specified by source")
     .action(async (source: string, format: string, start: string, end: string) => {
-        try {
-            const opts = datums.opts()
-            await fetchSNDatums(source, format, start, end, opts)
-        } catch (e: any) {
-            console.error(e)
-            console.log(e.config.url)
+        const opts = datums.opts()
+        const result = await fetchSNDatums(source, format, start, end, opts)
+        if (result.isErr) {
+            console.error(result.error.message)
         }
     })
 
@@ -108,11 +114,9 @@ datums
     .command("compression-types")
     .description("List export compression types")
     .action(async () => {
-        try {
-            await fetchCompressionTypes()
-        } catch (e: any) {
-            console.error(e)
-            console.log(e.config.url)
+        const result = await fetchCompressionTypes()
+        if (result.isErr) {
+            console.error(result.error.message)
         }
     })
 
@@ -120,11 +124,9 @@ datums
     .command("destination-types")
     .description("List export destination types")
     .action(async () => {
-        try {
-            await fetchDestinationTypes()
-        } catch (e: any) {
-            console.error(e)
-            console.log(e.config.url)
+        const result = await fetchDestinationTypes()
+        if (result.isErr) {
+            console.error(result.error.message)
         }
     })
 
@@ -132,11 +134,9 @@ datums
     .command("output-types")
     .description("List export output types")
     .action(async () => {
-        try {
-            await fetchOutputTypes()
-        } catch (e: any) {
-            console.error(e)
-            console.log(e.config.url)
+        const result = await fetchOutputTypes()
+        if (result.isErr) {
+            console.error(result.error.message)
         }
     })
 
@@ -144,15 +144,13 @@ datums
     .command("exports")
     .description("List export tasks")
     .action(async () => {
-        try {
-            await fetchExportTasks()
-        } catch (e: any) {
-            console.error(e)
-            console.log(e.config.url)
+        const result = await fetchExportTasks()
+        if (result.isErr) {
+            console.error(result.error.message)
         }
     })
 
-function collect (val: string, memo: string[]): string[] {
+function collect(val: string, memo: string[]): string[] {
     memo.push(val);
     return memo;
 }
@@ -169,12 +167,10 @@ datums
     .command("export")
     .description("Export data")
     .action(async () => {
-        try {
-            const opts = datums.opts()
-            await startExportTask(opts)
-        } catch (e: any) {
-            console.error(e)
-            console.log(e.config.url)
+        const opts = datums.opts()
+        const result = await startExportTask(opts)
+        if (result.isErr) {
+            console.error(result.error.message)
         }
     })
 

@@ -37,7 +37,7 @@ function columnValue(c: string, row: TaggedDatum, m: StreamMeta): string {
 
     let metaName = ""
     if (meta != -1) {
-        metaName = c.substring(meta+1)
+        metaName = c.substring(meta + 1)
     }
 
     switch (desc.type) {
@@ -74,12 +74,18 @@ function columnValue(c: string, row: TaggedDatum, m: StreamMeta): string {
                     const [av, co, min, max] = v
 
                     switch (metaName) {
-                        case "": return av.toString()
-                        case "average": return av.toString()
-                        case "count": return co.toString()
-                        case "minimum": return min.toString()
-                        case "maximum": return max.toString()
-                        default: throw new Error(`Unrecognized meta value: ${metaName}`)
+                        case "":
+                            return av.toString()
+                        case "average":
+                            return av.toString()
+                        case "count":
+                            return co.toString()
+                        case "minimum":
+                            return min.toString()
+                        case "maximum":
+                            return max.toString()
+                        default:
+                            throw new Error(`Unrecognized meta value: ${metaName}`)
                     }
                 }
             }
@@ -117,11 +123,16 @@ function columnValue(c: string, row: TaggedDatum, m: StreamMeta): string {
                     const [difference, starting, ending] = v
 
                     switch (metaName) {
-                        case "": return ending.toString()
-                        case "difference": return difference.toString()
-                        case "starting": return starting.toString()
-                        case "ending": return ending.toString()
-                        default: throw new Error(`Unrecognized meta value: ${metaName}`)
+                        case "":
+                            return ending.toString()
+                        case "difference":
+                            return difference.toString()
+                        case "starting":
+                            return starting.toString()
+                        case "ending":
+                            return ending.toString()
+                        default:
+                            throw new Error(`Unrecognized meta value: ${metaName}`)
                     }
                 }
             }
@@ -166,11 +177,8 @@ export async function listSourceMeasurements(path: string): Promise<void> {
         throw new Error("You must provide a secret")
     }
 
-    const auth = new AuthorizationV2Builder(cfg.sn.token).saveSigningKey(cfg.sn.secret)
-    const secret: string = cfg.sn.secret
-    const ids = await getNodeIds(cfg.sn, auth)
-
-    const result = await getDatums(cfg.sn, true, path, auth, secret, ids, undefined, undefined)
+    const ids = await getNodeIds(cfg.sn)
+    const result = await getDatums(cfg.sn, true, path, ids, undefined, undefined)
 
     let rows = []
     for (const source of result.response.meta) {
@@ -243,7 +251,7 @@ interface SNChunk {
     total: number
 }
 
-async function fetchSNDatumsProducer(cfg: SNConfig, chan: SimpleChannel<SNChunk>, bar: MultiBar, auth: any, secret: string, ids: any, sources: string[], format: string, start: string, end: string, opts: any) {
+async function fetchSNDatumsProducer(cfg: SNConfig, chan: SimpleChannel<SNChunk>, bar: MultiBar, ids: any, sources: string[], format: string, start: string, end: string, opts: any) {
     if (!sources) {
         return
     }
@@ -265,7 +273,7 @@ async function fetchSNDatumsProducer(cfg: SNConfig, chan: SimpleChannel<SNChunk>
 
                 b.update(total, {sourceId: source})
 
-                const response = await getDatums(cfg, false, source, auth, secret, ids, s, e, opts['aggregation'])
+                const response = await getDatums(cfg, false, source, ids, s, e, opts['aggregation'])
 
                 chan.send({
                     response: response,
@@ -279,7 +287,7 @@ async function fetchSNDatumsProducer(cfg: SNConfig, chan: SimpleChannel<SNChunk>
     }
 }
 
-async function fetchSNDatumsConsumer(chan: SimpleChannel<SNChunk>, bar: MultiBar, total: number, auth: any, secret: string, ids: any, format: string, start: string, end: string, opts: any) {
+async function fetchSNDatumsConsumer(chan: SimpleChannel<SNChunk>, bar: MultiBar, total: number,  ids: any, format: string, start: string, end: string, opts: any) {
 
     const columns = format.split(",")
     const b = bar.create(total, 0, {}, {
@@ -424,10 +432,8 @@ export async function fetchSNDatums(source: string, format: string, start: strin
         throw new Error("You must provide a secret")
     }
 
-    const auth = new AuthorizationV2Builder(cfg.sn.token).saveSigningKey(cfg.sn.secret)
-
-    const ids = await getNodeIds(cfg.sn, auth)
-    const sources = await listSources(cfg.sn, source, auth, cfg.sn.secret, ids)
+    const ids = await getNodeIds(cfg.sn)
+    const sources = await listSources(cfg.sn, cfg.sn.secret, ids)
     const coefficient = getDateRanges(moment(start), moment(end)).length
 
     const bar = new cliProgress.MultiBar({
@@ -446,15 +452,15 @@ export async function fetchSNDatums(source: string, format: string, start: strin
 
         const chan = new SimpleChannel<SNChunk>();
         const groups = chunkArray(sources, parallel)
-        const p1 = fetchSNDatumsConsumer(chan, bar, sources.length * coefficient, auth, secret, ids, format, start, end, opts)
+        const p1 = fetchSNDatumsConsumer(chan, bar, sources.length * coefficient, ids, format, start, end, opts)
         const sncfg = cfg.sn
-        const p2 = Array.from(Array(parallel).keys()).map(async i => fetchSNDatumsProducer(sncfg, chan, bar, auth, secret, ids, groups[i], format, start, end, opts))
+        const p2 = Array.from(Array(parallel).keys()).map(async i => fetchSNDatumsProducer(sncfg, chan, bar, ids, groups[i], format, start, end, opts))
 
         await Promise.all(p2)
         chan.close()
 
         await p1
-    } catch(e) {
+    } catch (e) {
         console.error(e)
     }
 
@@ -484,13 +490,13 @@ async function fetchExportList(t: string): Promise<void> {
         console.log(`localized name: ${r.localizedName}`)
         console.log(`localized description: ${r.localizedDescription}`)
 
-	const opts = r.localizedInfoMessages
+        const opts = r.localizedInfoMessages
 
-	if (typeof opts === 'object' && !Array.isArray(opts) && opts !== null) {
-	    for (const [key, value] of Object.entries(opts)) {
+        if (typeof opts === 'object' && !Array.isArray(opts) && opts !== null) {
+            for (const [key, value] of Object.entries(opts)) {
                 console.log(` - Property '${key}': ${value}`)
-	    }
-	}
+            }
+        }
     }
 }
 
@@ -521,21 +527,19 @@ export async function fetchExportTasks(): Promise<void> {
         throw new Error("You must provide a secret")
     }
 
-    const auth = new AuthorizationV2Builder(cfg.sn.token).saveSigningKey(cfg.sn.secret)
+    const tasks = await listExportTasks(cfg.sn)
+    for (const task of tasks) {
+        const config = task['config']
+        const t = task['task']
 
-	const tasks = await listExportTasks(cfg.sn)
-	for (const task of tasks) {
-		const config = task['config']
-		const t = task['task']
-
-		console.log(config['name'])
-		if (t['statusKey'] !== undefined) {
-			console.log(` - Status: ${t['statusKey']}`)
-		}
-		if (t['message'] !== undefined) {
-			console.log(` - Message: ${t['message']}`)
-		}
-	}
+        console.log(config['name'])
+        if (t['statusKey'] !== undefined) {
+            console.log(` - Status: ${t['statusKey']}`)
+        }
+        if (t['message'] !== undefined) {
+            console.log(` - Message: ${t['message']}`)
+        }
+    }
 }
 
 export async function startExportTask(opts: any): Promise<void> {
@@ -553,8 +557,7 @@ export async function startExportTask(opts: any): Promise<void> {
         throw new Error("You must provide a secret")
     }
 
-    const auth = new AuthorizationV2Builder(cfg.sn.token).saveSigningKey(cfg.sn.secret)
-    const ids = await getNodeIds(cfg.sn, auth)
+    const ids = await getNodeIds(cfg.sn)
 
     if (opts['start'] === undefined || opts['end'] === undefined) {
         throw new Error("Start and end options must be provided")
@@ -574,55 +577,55 @@ export async function startExportTask(opts: any): Promise<void> {
 
     const start = moment(opts['start'])
     const end = moment(opts['end'])
-    const name = randomWords({ exactly: 4, join: '-' })
+    const name = randomWords({exactly: 4, join: '-'})
 
-	const compressionTypes = await listExportType("compression", cfg.sn)
+    const compressionTypes = await listExportType("compression", cfg.sn)
     const outputTypes = await listExportType("output", cfg.sn)
     const destinationTypes = await listExportType("destination", cfg.sn)
 
-	// Get the right type
-	let compressionType: ExportTypeInfo | undefined = compressionTypes.find((t: ExportTypeInfo) => {
-		return t.id === opts['compression'] || t.localizedName === opts['compression']
-	})
-	let outputType: ExportTypeInfo | undefined = outputTypes.find((t: ExportTypeInfo) => {
-		return t.id === opts['output'] || t.localizedName === opts['output']
-	})
-	let destinationType: ExportTypeInfo | undefined = destinationTypes.find((t: ExportTypeInfo) => {
-		return t.id === opts['destination'] || t.localizedName === opts['destination']
-	})
+    // Get the right type
+    let compressionType: ExportTypeInfo | undefined = compressionTypes.find((t: ExportTypeInfo) => {
+        return t.id === opts['compression'] || t.localizedName === opts['compression']
+    })
+    let outputType: ExportTypeInfo | undefined = outputTypes.find((t: ExportTypeInfo) => {
+        return t.id === opts['output'] || t.localizedName === opts['output']
+    })
+    let destinationType: ExportTypeInfo | undefined = destinationTypes.find((t: ExportTypeInfo) => {
+        return t.id === opts['destination'] || t.localizedName === opts['destination']
+    })
 
-	if (compressionType == undefined) {
-		throw new Error(`Unknown compression type ${opts['compression']}`)
-	}
-	if (outputType == undefined) {
-		throw new Error(`Unknown output type ${opts['output']}`)
-	}
-	if (destinationType == undefined) {
-		throw new Error(`Unknown destination type ${opts['destination']}`)
-	}
+    if (compressionType == undefined) {
+        throw new Error(`Unknown compression type ${opts['compression']}`)
+    }
+    if (outputType == undefined) {
+        throw new Error(`Unknown output type ${opts['output']}`)
+    }
+    if (destinationType == undefined) {
+        throw new Error(`Unknown destination type ${opts['destination']}`)
+    }
 
-	const outputProps = opts['outputProp'].map((p: string) => {
-		const both = p.split(":")
-		const value = (outputType as ExportTypeInfo).settingSpecifiers.find((s: ExportSettingsSpecifier) => s.key === both[0])
-		return [both, value]
-	})
-	const destinationProps = opts['destinationProp'].map((p: string) => {
-		const both = p.split(":")
-		const value = (destinationType as ExportTypeInfo).settingSpecifiers.find((s: ExportSettingsSpecifier) => s.key === both[0])
-		return [both, value]
-	})
+    const outputProps = opts['outputProp'].map((p: string) => {
+        const both = p.split(":")
+        const value = (outputType as ExportTypeInfo).settingSpecifiers.find((s: ExportSettingsSpecifier) => s.key === both[0])
+        return [both, value]
+    })
+    const destinationProps = opts['destinationProp'].map((p: string) => {
+        const both = p.split(":")
+        const value = (destinationType as ExportTypeInfo).settingSpecifiers.find((s: ExportSettingsSpecifier) => s.key === both[0])
+        return [both, value]
+    })
 
-	// Verify options
-	for (const prop of outputProps) {
-		if (prop[1] === undefined) {
-			throw new Error(`Output property not found: ${prop}`)
-		}
-	}
-	for (const prop of destinationProps) {
-		if (prop[1] === undefined) {
-			throw new Error(`Destination property not found: ${prop}`)
-		}
-	}
+    // Verify options
+    for (const prop of outputProps) {
+        if (prop[1] === undefined) {
+            throw new Error(`Output property not found: ${prop}`)
+        }
+    }
+    for (const prop of destinationProps) {
+        if (prop[1] === undefined) {
+            throw new Error(`Destination property not found: ${prop}`)
+        }
+    }
 
     const filter: ExportDatumFilter = {
         startDate: start.valueOf(),
@@ -635,73 +638,73 @@ export async function startExportTask(opts: any): Promise<void> {
         datumFilter: filter,
     }
 
-	let outputServiceProperties: Record<string, any> = {}
-	for (const prop of outputProps) {
-		let [[key, value], t] = prop
+    let outputServiceProperties: Record<string, any> = {}
+    for (const prop of outputProps) {
+        let [[k, v], t] = prop
 
-		if (t['type'] === "net.solarnetwork.settings.ToggleSettingSpecifier") {
-			outputServiceProperties[prop[0][0]] = prop[0][1] === "true"
-		} else {
-			outputServiceProperties[prop[0][0]] = <any>prop[0][1]
-		}
-	}
-
-	let destinationServiceProperties: Record<string, any> = {}
-	for (const prop of destinationProps) {
-		let [[key, value], t] = prop
-
-		if (t['type'] === "net.solarnetwork.settings.ToggleSettingSpecifier") {
-			destinationServiceProperties[prop[0][0]] = prop[0][1] === "true"
-		} else {
-			destinationServiceProperties[prop[0][0]] = <any>prop[0][1]
-		}
-	}
-
-    const output: ExportOutputConfiguration = {
-		compressionTypeKey: compressionType.id,
-		serviceIdentifier: outputType.id,
-		serviceProperties: outputServiceProperties
+        if (t['type'] === "net.solarnetwork.settings.ToggleSettingSpecifier") {
+            outputServiceProperties[k] = (v === "true")
+        } else {
+            outputServiceProperties[k] = <any>v
+        }
     }
 
-	const destination: ExportDestinationConfiguration = {
-		serviceIdentifier: destinationType.id,
-		serviceProperties: destinationServiceProperties
-	}
+    let destinationServiceProperties: Record<string, any> = {}
+    for (const prop of destinationProps) {
+        let [[k, v], t] = prop
 
-	const request: ExportTask = {
-    	name: name,
-    	dataConfiguration: data,
-    	outputConfiguration: output,
-    	destinationConfiguration: destination
-	}
+        if (t['type'] === "net.solarnetwork.settings.ToggleSettingSpecifier") {
+            destinationServiceProperties[k] = (v === "true")
+        } else {
+            destinationServiceProperties[k] = <any>k
+        }
+    }
 
-	await submitExportTask(request, cfg.sn)
+    const output: ExportOutputConfiguration = {
+        compressionTypeKey: compressionType.id,
+        serviceIdentifier: outputType.id,
+        serviceProperties: outputServiceProperties
+    }
 
-	// Wait for the API to give us an answer
-	// TODO: types
-	while (true) {
-		const tasks = await listExportTasks(cfg.sn)
-		const task = tasks.find((t: any) => t['config']['name'] === name)
-		if (task == undefined) {
-			console.error(`Warning: Lost track of task '${name}', aborting.`)
-			return
-		}
+    const destination: ExportDestinationConfiguration = {
+        serviceIdentifier: destinationType.id,
+        serviceProperties: destinationServiceProperties
+    }
 
-		const result = task['task']
+    const request: ExportTask = {
+        name: name,
+        dataConfiguration: data,
+        outputConfiguration: output,
+        destinationConfiguration: destination
+    }
 
-		if (!result['success']) {
-			if (result['statusKey'] === 'q' || result['message'] == undefined) {
-		   		continue
-			}
+    await submitExportTask(request, cfg.sn)
 
-			// Error
-			if (result['statusKey'] === 'c') {
-				console.error(`Export task failed: ${result['message']}`)
-				break
-			}
-		} else {
-			break
-		}
-	}
+    // Wait for the API to give us an answer
+    // TODO: types
+    while (true) {
+        const tasks = await listExportTasks(cfg.sn)
+        const task = tasks.find((t: any) => t['config']['name'] === name)
+        if (task == undefined) {
+            console.error(`Warning: Lost track of task '${name}', aborting.`)
+            return
+        }
+
+        const result = task['task']
+
+        if (!result['success']) {
+            if (result['statusKey'] === 'q' || result['message'] == undefined) {
+                continue
+            }
+
+            // Error
+            if (result['statusKey'] === 'c') {
+                console.error(`Export task failed: ${result['message']}`)
+                break
+            }
+        } else {
+            break
+        }
+    }
 }
 

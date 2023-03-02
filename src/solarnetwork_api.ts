@@ -9,8 +9,9 @@ interface NodesResponse {
     data: number[]
 }
 
-export async function getNodeIds(cfg: SNConfig, auth: any): Promise<number[]> {
+export async function getNodeIds(cfg: SNConfig): Promise<number[]> {
     const url = `${cfg.url}/solarquery/api/v1/sec/nodes`
+    const auth = new AuthorizationV2Builder(cfg.token).saveSigningKey(cfg.secret)
     const authHeader = auth.reset().snDate(true).url(url).buildWithSavedKey()
 
     const response = await axios.get<NodesResponse>(url, {
@@ -322,12 +323,12 @@ export function getMeasurementDescriptor(meta: StreamMeta, measurement: string):
 export async function getDatums(cfg: SNConfig,
                                 mostRecent: boolean,
                                 source: string,
-                                auth: any,
-                                secret: string,
                                 ids: any,
                                 start?: string,
                                 end?: string,
                                 aggregation?: string): Promise<TaggedStreamResponse> {
+
+    const auth = new AuthorizationV2Builder(cfg.token).saveSigningKey(cfg.secret)
 
     let raw: any = {
         nodeIds: ids,
@@ -351,7 +352,7 @@ export async function getDatums(cfg: SNConfig,
     fetchUrl.search = params.toString()
     const urlString = encodeSolarNetworkUrl(fetchUrl)
 
-    const authHeader = auth.snDate(true).url(urlString).build(secret)
+    const authHeader = auth.snDate(true).url(urlString).build(cfg.secret)
 
     let response: TaggedStreamResponse
 
@@ -392,8 +393,8 @@ export async function getDatums(cfg: SNConfig,
 }
 
 
-export async function listSources(cfg: SNConfig, source: string, auth: any, secret: string, ids: any): Promise<string[]> {
-    const result = await getDatums(cfg, true, source, auth, secret, ids, undefined, undefined)
+export async function listSources(cfg: SNConfig, source: string, ids: any): Promise<string[]> {
+    const result = await getDatums(cfg, true, source, ids, undefined, undefined)
     return result.response.meta.map((m: any) => m['sourceId'])
 }
 
@@ -445,7 +446,7 @@ export async function submitExportTask(task: ExportTask, cfg: SNConfig): Promise
     headers[HttpHeaders.AUTHORIZATION] = authHeader
     headers[HttpHeaders.CONTENT_TYPE] = "application/json; charset=UTF-8"
 
-    const response = await axios.post<ExportResponse<null>>(url, js, { headers: headers })
+    const response = await axios.post<ExportResponse<null>>(url, js, {headers: headers})
 
     if (!response.data.success) {
         throw new Error(`SolarNetwork API call failed: ${url}`)

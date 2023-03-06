@@ -272,5 +272,85 @@ The second argument passed to the stream subcommand is called the format paramet
 CSV header. In this case, we wanted to download the `watts`, `current`, and `voltage` measurements alongside the UNIX
 timestamp of when these measurements were recorded.
 
+Tutorial: Exporting to S3
+-------------------------------------
+
+This section has similar goals to the previous section, except it will guide you through exporting to S3. Using the
+**export** subcommand has three different options to consider:
+
+* **Output**: This specifies the format of the data, for example CSV.
+* **Compression**: This controls the compression scheme which SolarNetwork uses.
+* **Destination**: This controls where the data is exported to, in our case we're just interested in S3.
+
+Export Options
+~~~~~~~~~~~~~~
+
+Firstly, let's investigate our options for these. To see what sort of output options are available to us, use the
+`output-types` subcommand:
+
+  .. code-block:: console
+
+    $ sqc datums output-types
+    id: net.solarnetwork.central.datum.export.standard.CsvDatumExportOutputFormatService
+    locale: en-US
+    localized name: CSV
+    localized description: Export data in comma separated values (spreadsheet) format.
+     - Property 'includeHeader.key': Include Header
+     - Property 'includeHeader.desc': Toggle the inclusion of a CSV header row.
+    id: net.solarnetwork.central.datum.export.standard.JsonDatumExportOutputFormatService
+    locale: en-US
+    localized name: JSON
+    localized description: Export data in JSON format.
+
+There are two options for the `output` option, one for CSV and one for JSON. You can either use the `id` field to
+identify them, or use the much handier `localized name`.
+
+The SolarNetwork API tells us that when using `CSV` as our `output` type, we have access to exactly one additional
+property:
+
+.. list-table:: SolarNetwork CSV Properties
+   :widths: 25 25 50
+   :header-rows: 1
+
+   * - Name
+     - Long Name
+     - Description
+   * - includeHeader
+     - Include Header
+     - Toggle the inclusion of a CSV header row.
+
+Specifying a destination property is used by using `--destination-prop`, output properties are specified using
+`--output-prop` and so on. You can use a similar procedure to investigate properties for compression and destination.
+
+Putting It All Together
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Once we've investigated the possible options and properties, we can execute an export. Below is an example export
+command:
+
+  .. code-block:: console
+
+    $ sqc datums export \
+      --output CSV \
+      --compression None \
+      --destination S3 \
+      --destination-prop path:https://s3-us-east-1.amazonaws.com/solarquant \
+      --destination-prop filenameTemplate:adhoc-data-export-{date}.{ext} \
+      --destination-prop accessKey:key \
+      --destination-prop secretKey:secret \
+      --source /MA/** \
+      --start 2022-01-01 --end 2022-05-01
+
+Common Issues
+-------------
+
+* **Valid source IDs**: SolarNetwork can sometimes behave in unexpected ways if you provide a source ID which your token
+  is not allowed to use, or if you're using a pattern which has the same effect. For instance:
+
+  .. code-block:: console
+
+    $ sqc projects source /DOESNT-EXIST/**
+    Failed to get matching source IDS: Error: Request failed with status code 403
+
 .. [#] There are multiple ways of installing Docker, follow the relevant instructions for your operating system:
     https://docs.docker.com/get-docker/

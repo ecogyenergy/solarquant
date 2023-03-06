@@ -1,6 +1,6 @@
 {
   "name": "solarquant",
-  "version": "0.1.0",
+  "version": "0.9.0",
   "description": "",
   "main": "index.js",
   "type": "module",
@@ -33,6 +33,7 @@
     "readline-sync": "^1.4.10",
     "solarnetwork-api-core": "^1.0.0",
     "solarnetwork-datum-loader": "^0.10.6",
+    "true-myth": "^6.2.0",
     "url": "^0.11.0"
   }
 }

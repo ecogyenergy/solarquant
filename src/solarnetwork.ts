@@ -450,7 +450,7 @@ export async function fetchSNDatums(source: string, format: string, start: strin
         return Result.err(new Error(`API call to get nodes failed: ${ids.error.message}`))
     }
 
-    const sources = await listSources(cfg.sn, cfg.sn.secret, ids)
+    const sources = await listSources(cfg.sn, source, ids.value)
     if (sources.isErr) {
         return Result.err(new Error(`Failed to fetch list of sources: ${sources.error.message}`))
     }
@@ -472,9 +472,9 @@ export async function fetchSNDatums(source: string, format: string, start: strin
 
         const chan = new SimpleChannel<SNChunk>();
         const groups = chunkArray(sources.value, parallel)
-        const p1 = fetchSNDatumsConsumer(chan, bar, sources.value.length * coefficient, ids, format, start, end, opts)
+        const p1 = fetchSNDatumsConsumer(chan, bar, sources.value.length * coefficient, ids.value, format, start, end, opts)
         const sncfg = cfg.sn
-        const p2 = Array.from(Array(parallel).keys()).map(async i => fetchSNDatumsProducer(sncfg, chan, bar, ids, groups[i], format, start, end, opts))
+        const p2 = Array.from(Array(parallel).keys()).map(async i => fetchSNDatumsProducer(sncfg, chan, bar, ids.value, groups[i], format, start, end, opts))
 
         await Promise.all(p2)
         chan.close()

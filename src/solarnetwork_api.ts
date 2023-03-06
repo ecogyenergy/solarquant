@@ -1,33 +1,87 @@
+import {AuthorizationV2Builder} from "solarnetwork-api-core";
+import {HttpHeaders} from "solarnetwork-api-core";
 import {SNConfig} from "./config";
 import axios from "axios";
 import {URL, URLSearchParams} from "url";
+import {Result} from "true-myth"
 
 interface NodesResponse {
     success: boolean
     data: number[]
 }
 
-export async function getNodeIds(cfg: SNConfig, auth: any, secret: string): Promise<number[]> {
+export async function getNodeIds(cfg: SNConfig): Promise<Result<number[], Error>> {
     const url = `${cfg.url}/solarquery/api/v1/sec/nodes`
-    const authHeader = auth.snDate(true).url(url).build(secret)
+    const auth = new AuthorizationV2Builder(cfg.token).saveSigningKey(cfg.secret)
+    const authHeader = auth.reset().snDate(true).url(url).buildWithSavedKey()
 
-    const response = await axios.get<NodesResponse>(url, {
-        headers: {
-            Authorization: authHeader,
-            "X-SN-Date": auth.requestDateHeaderValue,
-            "Accept-Encoding": "UTF8"
+    try {
+        const response = await axios.get<NodesResponse>(url, {
+            headers: {
+                Authorization: authHeader,
+                "X-SN-Date": auth.requestDateHeaderValue,
+                "Accept-Encoding": "UTF8"
+            }
+        })
+
+        if (!response.data.success) {
+            return Result.err(new Error("SolarNetwork API call failed: /solarquery/api/v1/sec/nodes"))
         }
-    })
 
-    if (!response.data.success) {
-        throw new Error("SolarNetwork API call failed: /solarquery/api/v1/sec/nodes")
+        return Result.ok(response.data.data)
+    } catch (e) {
+        return Result.err(new Error((e as Error).message))
     }
-
-    return response.data.data
 }
 
 function encodeSolarNetworkUrl(url: any) {
     return url.toString().replace(/\+/g, "%20") // SolarNetwork doesn't support + for space character encoding
+}
+
+export interface ExportSettingsSpecifier {
+    key: string
+    defaultValue: any
+    type: string
+    // ignored
+}
+
+// https://github.com/SolarNetwork/solarnetwork/wiki/SolarUser-Datum-Export-API#list-compression-types-response
+export interface ExportTypeInfo {
+    id: string
+    settingSpecifiers: ExportSettingsSpecifier[]
+    locale: string
+    localizedName: string
+    localizedDescription: string
+    localizedInfoMessages: any
+}
+
+export interface ExportResponse<T> {
+    success: boolean
+    data: T
+}
+
+export async function listExportType(t: string, cfg: SNConfig): Promise<Result<ExportTypeInfo[], Error>> {
+    const url = `${cfg.url}/solaruser/api/v1/sec/user/export/services/${t}`
+    const auth = new AuthorizationV2Builder(cfg.token).saveSigningKey(cfg.secret)
+    const authHeader = auth.snDate(true).url(url).build(cfg.secret)
+
+    try {
+        const response = await axios.get<ExportResponse<ExportTypeInfo[]>>(url, {
+            headers: {
+                Authorization: authHeader,
+                "X-SN-Date": auth.requestDateHeaderValue,
+                "Accept-Encoding": "UTF8"
+            }
+        })
+
+        if (!response.data.success) {
+            return Result.err(new Error(`SolarNetwork API call failed: ${url}`))
+        }
+
+        return Result.ok(response.data.data)
+    } catch (e) {
+        return Result.err(new Error((e as Error).message))
+    }
 }
 
 export interface StreamMeta {
@@ -278,12 +332,12 @@ export function getMeasurementDescriptor(meta: StreamMeta, measurement: string):
 export async function getDatums(cfg: SNConfig,
                                 mostRecent: boolean,
                                 source: string,
-                                auth: any,
-                                secret: string,
                                 ids: any,
                                 start?: string,
                                 end?: string,
-                                aggregation?: string): Promise<TaggedStreamResponse> {
+                                aggregation?: string): Promise<Result<TaggedStreamResponse, Error>> {
+
+    const auth = new AuthorizationV2Builder(cfg.token).saveSigningKey(cfg.secret)
 
     let raw: any = {
         nodeIds: ids,
@@ -307,48 +361,141 @@ export async function getDatums(cfg: SNConfig,
     fetchUrl.search = params.toString()
     const urlString = encodeSolarNetworkUrl(fetchUrl)
 
-    const authHeader = auth.snDate(true).url(urlString).build(secret)
+    const authHeader = auth.snDate(true).url(urlString).build(cfg.secret)
 
-    let response: TaggedStreamResponse
+    try {
+        let response: TaggedStreamResponse
 
-    if (aggregation) {
+        if (aggregation) {
 
-        const rawResponse = (await axios.get<StreamResponse>(urlString, {
-            headers: {
-                Authorization: authHeader,
-                "X-SN-Date": auth.requestDateHeaderValue,
-                "Accept-Encoding": "UTF8"
+            const rawResponse = (await axios.get<StreamResponse>(urlString, {
+                headers: {
+                    Authorization: authHeader,
+                    "X-SN-Date": auth.requestDateHeaderValue,
+                    "Accept-Encoding": "UTF8"
+                }
+            })).data
+
+            response = {
+                state: "aggregated",
+                response: rawResponse
             }
-        })).data
+        } else {
+            const rawResponse = (await axios.get<StreamResponse>(urlString, {
+                headers: {
+                    Authorization: authHeader,
+                    "X-SN-Date": auth.requestDateHeaderValue,
+                    "Accept-Encoding": "UTF8"
+                }
+            })).data
 
-        response = {
-            state: "aggregated",
-            response: rawResponse
-        }
-    } else {
-        const rawResponse = (await axios.get<StreamResponse>(urlString, {
-            headers: {
-                Authorization: authHeader,
-                "X-SN-Date": auth.requestDateHeaderValue,
-                "Accept-Encoding": "UTF8"
+            response = {
+                state: "raw",
+                response: rawResponse
             }
-        })).data
-
-        response = {
-            state: "raw",
-            response: rawResponse
         }
-    }
 
-    if (!response.response.success) {
-        throw new Error("SolarNetwork API call failed: /solarquery/api/v1/sec/datum/stream/datum")
-    }
+        if (!response.response.success) {
+            return Result.err(Error("SolarNetwork API call failed: /solarquery/api/v1/sec/datum/stream/datum"))
+        }
 
-    return response
+        return Result.ok(response)
+    } catch (e) {
+        return Result.err(new Error((e as Error).message))
+    }
 }
 
 
-export async function listSources(cfg: SNConfig, source: string, auth: any, secret: string, ids: any): Promise<string[]> {
-    const result = await getDatums(cfg, true, source, auth, secret, ids, undefined, undefined)
-    return result.response.meta.map((m: any) => m['sourceId'])
+export async function listSources(cfg: SNConfig, source: string, ids: any): Promise<Result<string[], Error>> {
+    const result = await getDatums(cfg, true, source, ids, undefined, undefined)
+    if (result.isErr) {
+        return Result.err(result.error)
+    }
+
+    return Result.ok(result.value.response.meta.map((m: any) => m['sourceId']))
+}
+
+export interface ExportDatumFilter {
+    startDate: number // epoch MS
+    endDate: number // epoch MS
+    aggregation?: string
+    nodeId?: number
+    nodeIds?: number[]
+    sourceId?: string
+    sourceIds?: string[]
+    nodeIdMaps?: string[]
+    sourceIdMaps?: string[]
+}
+
+export interface ExportDataConfiguration {
+    datumFilter: ExportDatumFilter
+}
+
+export interface ExportOutputConfiguration {
+    compressionTypeKey: string
+    serviceIdentifier: string
+    serviceProperties: Record<string, any>
+}
+
+export interface ExportDestinationConfiguration {
+    serviceIdentifier: string
+    serviceProperties: Record<string, any>
+}
+
+export interface ExportTask {
+    name: string,
+    dataConfiguration: ExportDataConfiguration,
+    outputConfiguration: ExportOutputConfiguration,
+    destinationConfiguration: ExportDestinationConfiguration
+}
+
+export async function submitExportTask(task: ExportTask, cfg: SNConfig): Promise<Result<void, Error>> {
+
+    const url = `${cfg.url}/solaruser/api/v1/sec/user/export/adhoc`
+    const js = JSON.stringify(task)
+
+    const auth = new AuthorizationV2Builder(cfg.token).saveSigningKey(cfg.secret)
+    let authHeader = auth.snDate(true).method("POST").contentType("application/json; charset=UTF-8").url(url).computeContentDigest(js).build(cfg.secret)
+
+    let headers: Record<string, any> = {}
+    headers[HttpHeaders.DIGEST] = auth.httpHeaders.firstValue(HttpHeaders.DIGEST)
+    headers[HttpHeaders.X_SN_DATE] = auth.requestDateHeaderValue
+    headers[HttpHeaders.AUTHORIZATION] = authHeader
+    headers[HttpHeaders.CONTENT_TYPE] = "application/json; charset=UTF-8"
+
+    try {
+        const response = await axios.post<ExportResponse<null>>(url, js, {headers: headers})
+
+        if (!response.data.success) {
+            return Result.err(new Error(`SolarNetwork API call failed: ${url}`))
+        }
+    } catch (e) {
+        return Result.err(new Error((e as Error).message))
+    }
+
+    return Result.ok(void (0))
+}
+
+export async function listExportTasks(cfg: SNConfig): Promise<Result<any, Error>> {
+    const url = `${cfg.url}/solaruser/api/v1/sec/user/export/adhoc`
+    const auth = new AuthorizationV2Builder(cfg.token).saveSigningKey(cfg.secret)
+    const authHeader = auth.snDate(true).method("GET").url(url).build(cfg.secret)
+
+    try {
+        const response = await axios.get<ExportResponse<any>>(url, {
+            headers: {
+                Authorization: authHeader,
+                "X-SN-Date": auth.requestDateHeaderValue,
+                "Accept-Encoding": "UTF8"
+            }
+        })
+
+        if (!response.data.success) {
+            return Result.err(new Error(`SolarNetwork API call failed: ${url}`))
+        }
+
+        return Result.ok(response.data.data)
+    } catch (e) {
+        return Result.err(new Error((e as Error).message))
+    }
 }

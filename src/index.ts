@@ -95,10 +95,18 @@ events
     })
 
 datums
-    .option("-a, --aggregation <aggregation>", "Aggregation for datums")
-    .option("--parallel <parallel>", "Number of requests at once", "32")
-    .option("-p, --partial", "Allow partial row matches")
-    .option("-e, --empty", "Allow empty row matches")
+    .option("-a, --aggregation <aggregation>",
+        `Aggregation for datums. If this option is given, the datums provided by SolarQuant will be modified. \
+        Specifically, datums will be combined in intervals given by this option.`)
+    .option("--parallel <parallel>",
+        `Number of requests to execute at once. Increasing this value may make your downloads complete faster, \
+        although this depends on how SolarQuant splits your data into chunks.`, "32")
+    .option("-p, --partial",
+        `Allow partial rows in the output. By default, if a row of data is missing one of the columns you \
+        have provided, it will be omitted by the output. If you want to include rows which are missing all data, use \
+        the --empty flag.`)
+    .option("-e, --empty", `Allow empty rows in the output. Read the --partial flag documentation for \
+    for information.`)
     .command("stream <source> <format> <start> <end>")
     .description("Dump datums specified by source")
     .action(async (source: string, format: string, start: string, end: string) => {
@@ -111,7 +119,7 @@ datums
 
 datums
     .command("compression-types")
-    .description("List export compression types")
+    .description("List the compression types which are available.")
     .action(async () => {
         const result = await fetchCompressionTypes()
         if (result.isErr) {
@@ -121,7 +129,7 @@ datums
 
 datums
     .command("destination-types")
-    .description("List export destination types")
+    .description("List the destination types which are available.")
     .action(async () => {
         const result = await fetchDestinationTypes()
         if (result.isErr) {
@@ -131,7 +139,7 @@ datums
 
 datums
     .command("output-types")
-    .description("List export output types")
+    .description("List the export types which are available.")
     .action(async () => {
         const result = await fetchOutputTypes()
         if (result.isErr) {
@@ -141,7 +149,7 @@ datums
 
 datums
     .command("exports")
-    .description("List export tasks")
+    .description("List the currently active export tasks.")
     .action(async () => {
         const result = await fetchExportTasks()
         if (result.isErr) {
@@ -155,14 +163,19 @@ function collect(val: string, memo: string[]): string[] {
 }
 
 datums
-    .option("--start <startDate>", "Start date for query")
-    .option("--end <endDate>", "Start date for query")
-    .option("-s, --source <sourceId>", "Source ID pattern")
-    .option("--compression <compressionId>", "Compression identifier")
-    .option("--output <outputId>", "Output identifier")
+    .option("--start <startDate>",
+        `Start date for query. This value is given in ISO 8601 format, for instance '2022-05-1'.`)
+    .option("--end <endDate>", `End date for query. Read help for --start for more details.`)
+    .option("-s, --source <sourceId>",
+        `Source ID pattern. This may be a source ID exactly, or it may be a wildcard pattern.`)
+    .option("--compression <compressionId>",
+        `Compression type to be used. You may either use the ID, or the localized name.`)
+    .option("--output <outputId>",
+        `Output type to be used. You may either use the ID, or the localized name.`)
     .option("--output-prop <key>", "Output property (key:value)", collect, [])
-    .option("--destination <destinationId>", "Destination identifier")
-    .option("--destination-prop <key>", "Destination property (key:value)", collect, [])
+    .option("--destination <destinationId>",
+    `Destination type to be used. You may either use the ID, or the localized name.`)
+.option("--destination-prop <key>", "Destination property (key:value)", collect, [])
     .command("export")
     .description("Export data")
     .action(async () => {

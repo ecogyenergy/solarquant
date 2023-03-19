@@ -155,7 +155,7 @@ You will be asked to provide the following information:
    * - password
      - Yes
      - string
-     - Ecogy AMS username.
+     - Ecogy AMS password.
 
 Tutorial: Exporting SolarNetwork Data
 -------------------------------------

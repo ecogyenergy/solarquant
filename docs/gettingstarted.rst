@@ -104,6 +104,10 @@ You will be asked to provide the following information:
      - Required
      - Type
      - Description
+   * - URL
+     - No
+     - string
+     - Address of the SolarNetwork server.
    * - token
      - Yes
      - string

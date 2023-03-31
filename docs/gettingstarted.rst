@@ -19,17 +19,36 @@ Firstly, install Docker [#]_. Once this has been accomplished, you can pull the 
     $ docker pull ecogyenergy/solarquant:latest
     $ docker run --rm -it --entrypoint bash ecogyenergy/solarquant:latest
     # sqc -h
-    Usage: sqc [options] [command]
+      Usage: sqc [options] [command]
 
-    Options:
-      -h, --help        display help for command
+      Options:
+        --config <configPath>  Path to config file
+        -h, --help             display help for command
 
-    Commands:
-      config            Manage authenticated sessions
-      projects          Fetch project metadata
-      events            Fetch events
-      datums [options]  Fetch datums from SolarNetwork
-      help [command]    display help for command
+      Commands:
+        config                 Manage authenticated sessions
+        projects               Fetch project metadata
+        events                 Fetch events
+        datums                 Fetch datums from SolarNetwork
+        plugin                 Plugin tools
+        help [command]         display help for command
+
+The recommended way of using SolarQuant is to use a shell alias on Unix-like shells:
+
+.. code-block:: console
+
+    $ docker pull ecogyenergy/solarquant:latest
+    $ docker run --rm -it --entrypoint bash ecogyenergy/solarquant:latest
+    $ alias sqc="docker run --privileged -it --rm -v '$PWD:/local' ecogyenergy/solarquant:latest --config /local/sqc.json"
+    $ sqc -h
+      Usage: sqc [options] [command]
+    ...
+
+.. warning::
+
+    When using the alias, your current working directory should be prepended by `/local/` in your commands. This is
+    because the previous commands mounts your working directory as a volume inside of the SolarQuant environment at
+    this directory.
 
 Installing directly on development machine
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -65,6 +84,7 @@ To use the `sqc` command, add this to your `PATH` environment variable:
       projects          Fetch project metadata
       events            Fetch events
       datums [options]  Fetch datums from SolarNetwork
+      plugin                 Plugin tools
       help [command]    display help for command
 
 .. note::
@@ -255,7 +275,7 @@ Now, let's download all of the datums for an entire month. To flex our muscles a
 
 .. code-block:: console
 
-    $ sqc datums stream /MA/**/INV/* timestamp,watts,current,voltage 2022-05-01 2022-06-01 > datums.csv
+    $ sqc datums stream -s /MA/**/INV/* -f timestamp,watts,current,voltage --start 2022-05-01 --end 2022-06-01 -o datums.csv
     $ head datums.csv
     sourceId,objectId,timestamp,watts,current,voltage
     /MA/PA/S1/INV/12,409,1651363240003,0,0,277.86667
@@ -268,7 +288,7 @@ Now, let's download all of the datums for an entire month. To flex our muscles a
     /MA/PA/S1/INV/12,409,1651363660308,0,0,278.33334
     /MA/PA/S1/INV/12,409,1651363720003,0,0,278.33334
 
-The second argument passed to the stream subcommand is called the format parameter, and it corresponds to the goal
+The `-f` argument passed to the stream subcommand is called the format parameter, and it corresponds to the goal
 CSV header. In this case, we wanted to download the `watts`, `current`, and `voltage` measurements alongside the UNIX
 timestamp of when these measurements were recorded.
 

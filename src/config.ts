@@ -2,6 +2,12 @@ import {question} from "readline-sync";
 import {Amplify, Auth} from "aws-amplify";
 import {readFileSync, writeFileSync} from "fs";
 
+export let configPath = "./sqc.json"
+
+export function setConfigPath(v: string) {
+    configPath = v
+}
+
 export interface AMSConfig {
     url?: string,
     region?: string,
@@ -31,7 +37,7 @@ export interface ConfigFile {
 
 export function readConfigFile(): ConfigFile {
     try {
-        const content = readFileSync("./sqc.json").toString()
+        const content = readFileSync(configPath).toString()
         return JSON.parse(content)
     } catch (_e) {
         return {}
@@ -40,7 +46,7 @@ export function readConfigFile(): ConfigFile {
 
 export function writeConfigFile(cfg: ConfigFile) {
     const buf = JSON.stringify(cfg, null, 4)
-    writeFileSync("./sqc.json", buf)
+    writeFileSync(configPath, buf)
 }
 
 export async function authenticateAMS(): Promise<void> {

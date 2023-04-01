@@ -7,7 +7,8 @@
 sourceId,objectId,timestamp,voltage
 EOF
 )
-  OUT=$(node ../src/ datums stream pyr1 timestamp,voltage 2022-12-01 2023-01-01 -a Day)
+  node ../src/ datums stream -s pyr1 -f timestamp,voltage --start 2022-12-01 --end 2023-01-01 -a Day -o /tmp/out.txt
+  OUT=$(cat /tmp/out.txt)
   [ "$OUT" = "$EXPECTED" ]
 }
 
@@ -22,7 +23,8 @@ pyr1,1,1670043600000,14.893976233333333,
 pyr1,1,1670130000000,102.06783405555555,
 EOF
 )
-  OUT=$(node ../src/ datums stream pyr1 timestamp,irradiance,voltage 2022-12-01 2023-01-01 -a Day --partial)
+  node ../src/ datums stream -s pyr1 -f timestamp,irradiance,voltage --start 2022-12-01 --end 2023-01-01 -a Day --partial -o /tmp/out.txt
+  OUT=$(cat /tmp/out.txt)
   [ "$OUT" = "$EXPECTED" ]
 }
 
@@ -37,7 +39,8 @@ pyr1,1,1670043600000,
 pyr1,1,1670130000000,
 EOF
 )
-  OUT=$(node ../src/ datums stream pyr1 timestamp,voltage 2022-12-01 2023-01-01 -a Day --empty)
+  node ../src/ datums stream -s pyr1 -f timestamp,voltage --start 2022-12-01 --end 2023-01-01 -a Day --empty -o /tmp/out.txt
+  OUT=$(cat /tmp/out.txt)
   [ "$OUT" = "$EXPECTED" ]
 }
 
@@ -52,7 +55,9 @@ pyr1,1,1670043600000,14.893976233333333,0,117.217224,1440
 pyr1,1,1670130000000,102.06783405555555,0,577.0264,1440
 EOF
 )
-  OUT=$(node ../src/ datums stream pyr1 timestamp,irradiance\$average,irradiance\$minimum,irradiance\$maximum,irradiance\$count 2022-12-01 2023-01-01 -a Day --empty)
+  node ../src/ datums stream -s pyr1 -f timestamp,irradiance\$average,irradiance\$minimum,irradiance\$maximum,irradiance\$count \
+    --start 2022-12-01 --end 2023-01-01 -a Day --empty -o /tmp/out.txt
+  OUT=$(cat /tmp/out.txt)
   [ "$OUT" = "$EXPECTED" ]
 }
 
@@ -66,7 +71,8 @@ pyr1,1,1670043600000,14.893976233333333
 pyr1,1,1670130000000,102.06783405555555
 EOF
 )
-  OUT=$(node ../src/ datums stream pyr1 timestamp,irradiance 2022-12-01 2023-01-01 -a Day --empty)
+  node ../src/ datums stream -s pyr1 -f timestamp,irradiance --start 2022-12-01 --end 2023-01-01 -a Day --empty -o /tmp/out.txt
+  OUT=$(cat /tmp/out.txt)
   [ "$OUT" = "$EXPECTED" ]
 }
 
@@ -80,7 +86,8 @@ pyr1,1,14.893976233333333
 pyr1,1,102.06783405555555
 EOF
 )
-  OUT=$(node ../src/ datums stream pyr1 irradiance 2022-12-01 2023-01-01 -a Day --empty)
+  node ../src/ datums stream -s pyr1 -f irradiance --start 2022-12-01 --end 2023-01-01 -a Day --empty -o /tmp/out.txt
+  OUT=$(cat /tmp/out.txt)
   [ "$OUT" = "$EXPECTED" ]
 }
 
@@ -90,7 +97,8 @@ EOF
 sourceId,objectId,voltage
 EOF
 )
-  OUT=$(node ../src/ datums stream pyr1 voltage 2022-12-01 2023-01-01 -a Day)
+  node ../src/ datums stream -s pyr1 -f voltage --start 2022-12-01 --end 2023-01-01 -a Day -o /tmp/out.txt
+  OUT=$(cat /tmp/out.txt)
   [ "$OUT" = "$EXPECTED" ]
 }
 
@@ -105,7 +113,8 @@ pyr1,1,14.893976233333333,
 pyr1,1,102.06783405555555,
 EOF
 )
-  OUT=$(node ../src/ datums stream pyr1 irradiance,voltage 2022-12-01 2023-01-01 -a Day --partial)
+  node ../src/ datums stream -s pyr1 -f irradiance,voltage --start 2022-12-01 --end 2023-01-01 -a Day --partial -o /tmp/out.txt
+  OUT=$(cat /tmp/out.txt)
   [ "$OUT" = "$EXPECTED" ]
 }
 
@@ -120,7 +129,8 @@ pyr1,1,
 pyr1,1,
 EOF
 )
-  OUT=$(node ../src/ datums stream pyr1 voltage 2022-12-01 2023-01-01 -a Day --empty)
+  node ../src/ datums stream -s pyr1 -f voltage --start 2022-12-01 --end 2023-01-01 -a Day --empty -o /tmp/out.txt
+  OUT=$(cat /tmp/out.txt)
   [ "$OUT" = "$EXPECTED" ]
 }
 
@@ -152,6 +162,7 @@ pyr1,452,1669854013011,14.990587
 pyr1,452,1669854073012,14.988039
 EOF
 )
-  OUT=$(node ../src/ datums stream pyr1 timestamp,temperature 2022-12-01 2023-01-01)
+  node ../src/ datums stream -s pyr1 -f timestamp,temperature --start 2022-12-01 --end 2023-01-01 -o /tmp/out.txt
+  OUT=$(cat /tmp/out.txt)
   [ "$OUT" = "$EXPECTED" ]
 }

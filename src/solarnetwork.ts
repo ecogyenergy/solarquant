@@ -20,6 +20,7 @@ import {
     ExportDatumFilter, ExportDataConfiguration, ExportDestinationConfiguration, ExportOutputConfiguration, ExportTask
 } from "./solarnetwork_api.js"
 import {Result} from "true-myth";
+import {WriteStream} from "fs";
 
 
 function columnName(c: string): string {
@@ -252,7 +253,7 @@ export async function listSourceMeasurements(path: string): Promise<Result<void,
     })
 
     p.printTable()
-    return Result.ok(void(0))
+    return Result.ok(void (0))
 }
 
 interface SNChunk {
@@ -300,11 +301,21 @@ async function fetchSNDatumsProducer(cfg: SNConfig, chan: SimpleChannel<SNChunk>
     }
 }
 
-async function fetchSNDatumsConsumer(chan: SimpleChannel<SNChunk>, bar: MultiBar, total: number,  ids: any, format: string, start: string, end: string, opts: any) {
+async function fetchSNDatumsConsumer(stream: WriteStream,
+                                     chan: SimpleChannel<SNChunk>,
+                                     bar: MultiBar,
+                                     total: number,
+                                     ids: any,
+                                     format: string,
+                                     start: string,
+                                     end: string,
+                                     opts: any) {
 
     const columns = format.split(",")
     const b = bar.create(total, 0, {}, {
         format: ' {bar} | Total Progress: {value}/{total} | {eta_formatted}',
+        forceRedraw: true,
+        noTTYOutput: true
     })
 
     const haveTimestamp = columns.findIndex(col => col === "timestamp") != -1
@@ -365,14 +376,14 @@ async function fetchSNDatumsConsumer(chan: SimpleChannel<SNChunk>, bar: MultiBar
             }
 
             if (m['sourceId']) {
-                process.stdout.write(m['sourceId'].toString())
+                stream.write(m['sourceId'].toString())
             }
-            process.stdout.write(',')
+            stream.write(",")
 
             if (m['objectId']) {
-                process.stdout.write(m['objectId'].toString())
+                stream.write(m['objectId'].toString())
             }
-            process.stdout.write(',')
+            stream.write(",")
 
             for (let i = 0; i < columns.length; i++) {
                 const c = columns[i]
@@ -385,17 +396,17 @@ async function fetchSNDatumsConsumer(chan: SimpleChannel<SNChunk>, bar: MultiBar
                     switch (chunk.state) {
                         case "raw": {
                             const tRow = row as RawDatum
-                            process.stdout.write(tRow[1].toString())
+                            stream.write(tRow[1].toString())
                             break
                         }
                         case "aggregated": {
                             const tRow = row as AggregatedDatum
                             const [_meta, timestamp, _i, _a, _status, _tags] = tRow
-                            process.stdout.write(timestamp[0].toString())
+                            stream.write(timestamp[0].toString())
                         }
                     }
 
-                    process.stdout.write(sep)
+                    stream.write(sep)
                     continue
                 }
 
@@ -418,19 +429,24 @@ async function fetchSNDatumsConsumer(chan: SimpleChannel<SNChunk>, bar: MultiBar
                 }
 
                 if (val !== undefined) {
-                    process.stdout.write(val.toString())
+                    stream.write(val.toString())
                 }
-                process.stdout.write(sep)
+                stream.write(sep)
             }
 
-            process.stdout.write("\n")
+            stream.write("\n")
         }
     }
 
-    process.stdout.write("\n")
+    stream.write("\n")
 }
 
-export async function fetchSNDatums(source: string, format: string, start: string, end: string, opts: any): Promise<Result<void, Error>> {
+export async function fetchSNDatums(stream: WriteStream,
+                                    source: string,
+                                    format: string,
+                                    start: string,
+                                    end: string,
+                                    opts: any): Promise<Result<void, Error>> {
     const cfg = readConfigFile()
 
     if (!cfg.sn) {
@@ -466,13 +482,13 @@ export async function fetchSNDatums(source: string, format: string, start: strin
     }, cliProgress.Presets.rect)
 
     try {
-        console.log("sourceId,objectId," + format)
+        stream.write(`sourceId,objectId,${format}\n`)
 
         const parallel: number = parseInt(opts['parallel'])
 
         const chan = new SimpleChannel<SNChunk>();
         const groups = chunkArray(sources.value, parallel)
-        const p1 = fetchSNDatumsConsumer(chan, bar, sources.value.length * coefficient, ids.value, format, start, end, opts)
+        const p1 = fetchSNDatumsConsumer(stream, chan, bar, sources.value.length * coefficient, ids.value, format, start, end, opts)
         const sncfg = cfg.sn
         const p2 = Array.from(Array(parallel).keys()).map(async i => fetchSNDatumsProducer(sncfg, chan, bar, ids.value, groups[i], format, start, end, opts))
 
@@ -485,7 +501,7 @@ export async function fetchSNDatums(source: string, format: string, start: strin
     }
 
     bar.stop()
-    return Result.ok(void(0))
+    return Result.ok(void (0))
 }
 
 async function fetchExportList(t: string): Promise<Result<void, Error>> {
@@ -523,7 +539,7 @@ async function fetchExportList(t: string): Promise<Result<void, Error>> {
         }
     }
 
-    return Result.ok(void(0))
+    return Result.ok(void (0))
 }
 
 export async function fetchCompressionTypes(): Promise<Result<void, Error>> {
@@ -571,7 +587,7 @@ export async function fetchExportTasks(): Promise<Result<void, Error>> {
         }
     }
 
-    return Result.ok(void(0))
+    return Result.ok(void (0))
 }
 
 function splitOnce(str: string, element: string): string[] {
@@ -769,6 +785,6 @@ export async function startExportTask(opts: any): Promise<Result<void, Error>> {
         }
     }
 
-    return Result.ok(void(0))
+    return Result.ok(void (0))
 }
 

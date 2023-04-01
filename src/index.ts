@@ -4,7 +4,7 @@ process.env.NODE_NO_WARNINGS = "1";
 
 import {Command} from "commander";
 import {listAMSProjects, listAMSSites, listAMSSources, listEvents} from "./ams.js"
-import {authenticateAMS, authenticateSolarNetwork} from "./config.js";
+import {authenticateAMS, authenticateSolarNetwork, setConfigPath} from "./config.js";
 import {
     fetchSNDatums,
     listSourceMeasurements,
@@ -15,11 +15,16 @@ import {
     startExportTask
 } from "./solarnetwork.js";
 
+import {createWriteStream} from "fs";
+
+import {initPlugin} from "./plugin.js";
+
 const quant = new Command("sqc")
 const config = new Command("config").description("Manage authenticated sessions")
 const projects = new Command("projects").description("Fetch project metadata")
 const events = new Command("events").description("Fetch events")
 const datums = new Command("datums").description("Fetch datums from SolarNetwork")
+const plugin = new Command("plugin").description("Plugin tools")
 
 config
     .command("authenticate <type>")
@@ -83,18 +88,31 @@ projects
         }
     })
 
-events
-    .command("list <start> <end>")
+const listevents = events.command("list")
+listevents
+    .requiredOption("--start <startDate>",
+        `Start date for query. This value is given in ISO 8601 format, for instance '2022-05-1'.`)
+    .requiredOption("--end <endDate>", `End date for query. Read help for --start for more details.`)
     .description("List events")
-    .action(async (start: string, end: string, project: string) => {
+    .action(async () => {
+        const opts = listevents.opts()
         try {
-            await listEvents(start, end)
+            await listEvents(opts['start'], opts['end'])
         } catch (e) {
             console.error(e)
         }
     })
 
-datums
+const stream = datums.command("stream")
+stream
+    .requiredOption("-o, --output <file>", "File which exported data is written to", undefined)
+    .requiredOption("--start <startDate>",
+        `Start date for query. This value is given in ISO 8601 format, for instance '2022-05-1'.`)
+    .requiredOption("--end <endDate>", `End date for query. Read help for --start for more details.`)
+    .requiredOption("-s, --source <sourceId>",
+        `Source ID pattern. This may be a source ID exactly, or it may be a wildcard pattern.`)
+    .requiredOption("-f, --format <format>",
+        `Header of exported CSV data`)
     .option("-a, --aggregation <aggregation>",
         `Aggregation for datums. If this option is given, the datums provided by SolarQuant will be modified. \
         Specifically, datums will be combined in intervals given by this option.`)
@@ -107,11 +125,13 @@ datums
         the --empty flag.`)
     .option("-e, --empty", `Allow empty rows in the output. Read the --partial flag documentation for \
     for information.`)
-    .command("stream <source> <format> <start> <end>")
     .description("Dump datums specified by source")
-    .action(async (source: string, format: string, start: string, end: string) => {
-        const opts = datums.opts()
-        const result = await fetchSNDatums(source, format, start, end, opts)
+    .action(async () => {
+        const opts = stream.opts()
+        const fd = createWriteStream(opts['output'])
+        const result = await fetchSNDatums(fd, opts['source'], opts['format'], opts['start'], opts['end'], opts)
+        fd.close()
+
         if (result.isErr) {
             console.error(result.error.message)
         }
@@ -162,21 +182,22 @@ function collect(val: string, memo: string[]): string[] {
     return memo;
 }
 
-datums
-    .option("--start <startDate>",
+const exportcmd = datums.command("export")
+
+exportcmd
+    .requiredOption("--start <startDate>",
         `Start date for query. This value is given in ISO 8601 format, for instance '2022-05-1'.`)
-    .option("--end <endDate>", `End date for query. Read help for --start for more details.`)
-    .option("-s, --source <sourceId>",
+    .requiredOption("--end <endDate>", `End date for query. Read help for --start for more details.`)
+    .requiredOption("-s, --source <sourceId>",
         `Source ID pattern. This may be a source ID exactly, or it may be a wildcard pattern.`)
-    .option("--compression <compressionId>",
+    .requiredOption("--compression <compressionId>",
         `Compression type to be used. You may either use the ID, or the localized name.`)
-    .option("--output <outputId>",
+    .requiredOption("--output <outputId>",
         `Output type to be used. You may either use the ID, or the localized name.`)
     .option("--output-prop <key>", "Output property (key:value)", collect, [])
     .option("--destination <destinationId>",
-    `Destination type to be used. You may either use the ID, or the localized name.`)
-.option("--destination-prop <key>", "Destination property (key:value)", collect, [])
-    .command("export")
+        `Destination type to be used. You may either use the ID, or the localized name.`)
+    .option("--destination-prop <key>", "Destination property (key:value)", collect, [])
     .description("Export data")
     .action(async () => {
         const opts = datums.opts()
@@ -186,10 +207,25 @@ datums
         }
     })
 
+plugin
+    .command("init <outputDir>")
+    .option("-g <generator>", "OpenAPI generator to use.", "python-flask")
+    .option("-t <tool>", "Docker tool to use", "podman")
+    .description("Initialize plugin framework in the current directory")
+    .action(async(outputDir: string) => {
+        const opts = plugin.opts()
+        await initPlugin(outputDir, opts['g'], opts['t'])
+    })
+
 quant
+    .option("--config <configPath>", "Path to config file")
+    .on("option:config", (arg) => {
+        setConfigPath(arg)
+    })
     .addCommand(config)
     .addCommand(projects)
     .addCommand(events)
     .addCommand(datums)
+    .addCommand(plugin)
 
 quant.parse(process.argv)

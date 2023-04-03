@@ -649,12 +649,12 @@ export async function startExportTask(opts: any): Promise<Result<void, Error>> {
 
     const outputTypes = await listExportType("output", cfg.sn)
     if (outputTypes.isErr) {
-        return Result.err(new Error(`Failed to fetch compression types: ${outputTypes.error.message}`))
+        return Result.err(new Error(`Failed to fetch output types: ${outputTypes.error.message}`))
     }
 
     const destinationTypes = await listExportType("destination", cfg.sn)
     if (destinationTypes.isErr) {
-        return Result.err(new Error(`Failed to fetch compression types: ${destinationTypes.error.message}`))
+        return Result.err(new Error(`Failed to fetch destination types: ${destinationTypes.error.message}`))
     }
 
     // Get the right type

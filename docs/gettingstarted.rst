@@ -124,6 +124,10 @@ You will be asked to provide the following information:
      - Required
      - Type
      - Description
+   * - URL
+     - No
+     - string
+     - Address of the SolarNetwork server.
    * - token
      - Yes
      - string
@@ -171,7 +175,7 @@ You will be asked to provide the following information:
    * - password
      - Yes
      - string
-     - Ecogy AMS username.
+     - Ecogy AMS password.
 
 Tutorial: Exporting SolarNetwork Data
 -------------------------------------

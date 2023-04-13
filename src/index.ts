@@ -207,13 +207,13 @@ exportcmd
         }
     })
 
-plugin
+const plugincmd = plugin
     .command("init <outputDir>")
     .option("-g <generator>", "OpenAPI generator to use.", "python-flask")
     .option("-t <tool>", "Docker tool to use", "podman")
     .description("Initialize plugin framework in the current directory")
     .action(async(outputDir: string) => {
-        const opts = plugin.opts()
+        const opts = plugincmd.opts()
         await initPlugin(outputDir, opts['g'], opts['t'])
     })
 

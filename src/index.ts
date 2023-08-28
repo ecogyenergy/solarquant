@@ -200,7 +200,7 @@ exportcmd
     .option("--destination-prop <key>", "Destination property (key:value)", collect, [])
     .description("Export data")
     .action(async () => {
-        const opts = datums.opts()
+        const opts = exportcmd.opts()
         const result = await startExportTask(opts)
         if (result.isErr) {
             console.error(result.error.message)

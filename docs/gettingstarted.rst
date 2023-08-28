@@ -191,7 +191,7 @@ sources we have available to us:
 
 .. code-block:: console
 
-    $ sqc projects sources
+    $ sqc projects source
     ┌────────┬────────────────────────────────┐
     │ nodeId │ sourceId                       │
     ├────────┼────────────────────────────────┤
@@ -209,7 +209,7 @@ columns of data:
 
 .. code-block:: console
 
-    $ sqc projects sources /LN/RC/S1/GEN/1
+    $ sqc projects source /LN/RC/S1/GEN/1
     ┌─────────────────┬──────────────────┬───────────────┬──────────────┬────────┐
     │ source          │ field            │ instantaneous │ accumulating │ status │
     ├─────────────────┼──────────────────┼───────────────┼──────────────┼────────┤

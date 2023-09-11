@@ -163,11 +163,64 @@ export type AggregatedDatum = [
     status: (string | undefined) [],
     tags: string[],
 ]
+export type RawLocationDatum = [
+    created: string,
+    locationId: number,
+    sourceId: string,
+    localDate: string,
+    localTime: string,
+    tags: string[],
+    samples: Map<string, string | number>
+]
+
+export interface TaggedRawLocSample {
+    type: "raw"
+    value: string | number
+}
+
+export interface TaggedAggregatedLocSample {
+    type: "aggregated"
+    average: number
+    min: number
+    max: number
+}
+
+export type AggregatedLocationDatum = [
+    created: string,
+    locationId: number,
+    sourceId: string,
+    localDate: string,
+    localTime: string,
+    tags: string[],
+    samples: Map<string, TaggedAggregatedLocSample | TaggedRawLocSample>
+]
 
 export interface StreamResponse {
     success: boolean
     meta: StreamMeta[]
     data: any[]
+}
+
+export interface LocationData {
+    totalResults: number,
+    startingOffset: number,
+    returnedResultCount: number,
+    results: any[]
+}
+
+export interface LocationResponse {
+    success: boolean
+    data: LocationData,
+}
+
+export interface TaggedRawLocationResponse {
+    state: "raw",
+    response: LocationResponse
+}
+
+export interface TaggedAggregatedLocationResponse {
+    state: "aggregated",
+    response: LocationResponse
 }
 
 export interface TaggedRawResponse {
@@ -181,6 +234,7 @@ export interface TaggedAggregatedResponse {
 }
 
 export type TaggedStreamResponse = TaggedRawResponse | TaggedAggregatedResponse
+export type TaggedLocationResponse = TaggedRawLocationResponse | TaggedAggregatedLocationResponse
 
 export interface TaggedRawDatum {
     state: "raw"
@@ -192,7 +246,18 @@ export interface TaggedAggregatedDatum {
     datum: AggregatedDatum
 }
 
+export interface TaggedRawLocationDatum {
+    state: "raw"
+    datum: RawLocationDatum
+}
+
+export interface TaggedAggregatedLocationDatum {
+    state: "aggregated"
+    datum: AggregatedLocationDatum
+}
+
 export type TaggedDatum = TaggedRawDatum | TaggedAggregatedDatum
+export type TaggedLocationDatum = TaggedRawLocationDatum | TaggedAggregatedLocationDatum
 
 // We need to sanitize the datum values given from the SolarNetwork API because they are very rarely not the correct
 // types. This causes issues later on, so we make sure undefined or null values are converted to their typed
@@ -203,6 +268,57 @@ function ensureNumberType(value: any): number {
 
 function ensureStringType(value: any): string {
     return (typeof value === 'string') ? value : ""
+}
+
+export function parseRawLocationDatums(response: LocationResponse): RawLocationDatum[] {
+
+    return response.data.results.map(datum => {
+        const samples: Map<string, string | number> = new Map()
+        const ignore = new Set(['created', 'locationId', 'sourceId', 'localDate', 'localTime', 'tags'])
+
+        for (const key in datum) {
+            if (ignore.has(key)) {
+                continue;
+            }
+
+            samples.set(key, datum[key])
+        }
+
+        return [datum['created'], datum['locationId'] as number, datum['sourceId'], datum['localDate'], datum['localTime'], datum['tags'] ? datum['tags'] : [], samples]
+    })
+
+}
+
+export function parseAggregatedLocationDatums(response: LocationResponse): AggregatedLocationDatum[] {
+
+    return response.data.results.map(datum => {
+        const samples: Map<string, (TaggedAggregatedLocSample) | TaggedRawLocSample> = new Map()
+        const ignore = new Set(['created', 'locationId', 'sourceId', 'localDate', 'localTime', 'tags'])
+
+        for (const key in datum) {
+            if (ignore.has(key)) {
+                continue;
+            }
+
+            if (key.includes("_")) {
+                continue
+            }
+
+            const base = key
+            const average = datum[key]
+            const min = datum[base + "_min"]
+            const max = datum[base + "_max"]
+
+            if (min === undefined || max === undefined) {
+                samples.set(key, {type: "raw", value: average})
+            } else {
+                samples.set(key, {type: "aggregated", average: average, min: min, max: max})
+            }
+        }
+
+        return [datum['created'], datum['locationId'] as number, datum['sourceId'], datum['localDate'], datum['localTime'], datum['tags'] ? datum['tags'] : [], samples]
+    })
+
 }
 
 export function parseRawDatums(response: StreamResponse): RawDatum[] {
@@ -405,6 +521,130 @@ export async function getDatums(cfg: SNConfig,
     }
 }
 
+export async function getLocationDatums(cfg: SNConfig,
+                                        mostRecent: boolean,
+                                        locationId: string,
+                                        sourceId: string,
+                                        start?: string,
+                                        end?: string,
+                                        aggregation?: string): Promise<Result<TaggedLocationResponse, Error>> {
+
+    const auth = new AuthorizationV2Builder(cfg.token).saveSigningKey(cfg.secret)
+
+    let raw: any = {
+        locationId: locationId,
+        sourceIds: "OpenWeatherMap",
+        mostRecent: mostRecent
+    }
+
+    if (end)
+        raw.endDate = end
+
+    if (start)
+        raw.startDate = start
+
+    if (aggregation)
+        raw.aggregation = aggregation
+
+    const params = new URLSearchParams(raw)
+    const url = `${cfg.url}/solarquery/api/v1/sec/location/datum/list`
+
+    const fetchUrl = new URL(url)
+    fetchUrl.search = params.toString()
+    const urlString = encodeSolarNetworkUrl(fetchUrl)
+
+    const authHeader = auth.snDate(true).url(urlString).build(cfg.secret)
+
+    try {
+        let response: TaggedLocationResponse
+
+        if (aggregation) {
+
+            const rawResponse = (await axios.get<LocationResponse>(urlString, {
+                headers: {
+                    Authorization: authHeader,
+                    "X-SN-Date": auth.requestDateHeaderValue,
+                    "Accept-Encoding": "UTF8"
+                }
+            })).data
+
+            response = {
+                state: "aggregated",
+                response: rawResponse
+            }
+        } else {
+            const rawResponse = (await axios.get<LocationResponse>(urlString, {
+                headers: {
+                    Authorization: authHeader,
+                    "X-SN-Date": auth.requestDateHeaderValue,
+                    "Accept-Encoding": "UTF8"
+                }
+            })).data
+
+            response = {
+                state: "raw",
+                response: rawResponse
+            }
+        }
+
+        if (!response.response.success) {
+            return Result.err(Error("SolarNetwork API call failed: /solarquery/api/v1/sec/location/datum/list"))
+        }
+
+        return Result.ok(response)
+    } catch (e) {
+        return Result.err(new Error((e as Error).message))
+    }
+}
+
+interface LocationMeta {
+    locationId: number
+    sourceId: string
+    m: Record<string, string>,
+    t: string[]
+}
+
+interface LocationMetaPage {
+    totalResults: number
+    startingOffset: number
+    returnedResultCount: number
+    results: LocationMeta[]
+}
+
+interface LocationMetaResponse {
+    success: boolean
+    data: LocationMetaPage
+}
+
+export async function getLocationMeta(cfg: SNConfig, locationId: string): Promise<Result<LocationMeta[], Error>> {
+
+    const auth = new AuthorizationV2Builder(cfg.token).saveSigningKey(cfg.secret)
+
+    const url = `${cfg.url}/solarquery/api/v1/sec/location/meta/${locationId}`
+
+    const fetchUrl = new URL(url)
+    const urlString = encodeSolarNetworkUrl(fetchUrl)
+
+    const authHeader = auth.snDate(true).url(urlString).build(cfg.secret)
+
+    try {
+        const response = (await axios.get<LocationResponse>(urlString, {
+            headers: {
+                Authorization: authHeader,
+                "X-SN-Date": auth.requestDateHeaderValue,
+                "Accept-Encoding": "UTF8"
+            }
+        })).data
+
+        if (!response.success) {
+            return Result.err(Error("SolarNetwork API call failed: /solarquery/api/v1/sec/location/meta"))
+        }
+
+        return Result.ok(response.data.results)
+    } catch (e) {
+        return Result.err(new Error((e as Error).message))
+    }
+}
 
 export async function listSources(cfg: SNConfig, source: string, ids: any): Promise<Result<string[], Error>> {
     const result = await getDatums(cfg, true, source, ids, undefined, undefined)

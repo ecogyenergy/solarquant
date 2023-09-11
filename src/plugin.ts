@@ -33,10 +33,10 @@ paths:
             schema:
               type: object
               properties:
-                timestamps:
+                datums:
                   type: array
                   items:
-                    type: number
+                    $ref: '#/components/schemas/Datum'
                   
             
       responses:

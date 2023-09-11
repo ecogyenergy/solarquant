@@ -62,6 +62,11 @@ Meta values supported:
 
 - `$maximum`: Returns the maximum measurement value.
 
+.. note::
+
+    The `$count` meta value is not supported when exporting location datums. This is because the count is not provided
+    by SolarNetwork at this time.
+
 Accumulating
 ++++++++++++
 

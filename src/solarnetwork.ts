@@ -12,12 +12,29 @@ import {
     getMeasurementDescriptor,
     getNodeIds,
     listSources,
-    MeasurementType, parseAggregatedDatums, parseRawDatums, RawDatum,
+    MeasurementType,
+    parseAggregatedDatums,
+    parseRawDatums,
+    RawDatum,
     StreamMeta,
-    TaggedDatum, TaggedStreamResponse,
-    ExportTypeInfo, listExportType, submitExportTask, ExportSettingsSpecifier,
+    TaggedDatum,
+    TaggedStreamResponse,
+    ExportTypeInfo,
+    listExportType,
+    submitExportTask,
+    ExportSettingsSpecifier,
     listExportTasks,
-    ExportDatumFilter, ExportDataConfiguration, ExportDestinationConfiguration, ExportOutputConfiguration, ExportTask
+    ExportDatumFilter,
+    ExportDataConfiguration,
+    ExportDestinationConfiguration,
+    ExportOutputConfiguration,
+    ExportTask,
+    getLocationDatums,
+    parseRawLocationDatums,
+    parseAggregatedLocationDatums,
+    RawLocationDatum,
+    AggregatedLocationDatum,
+    TaggedLocationDatum, getLocationMeta
 } from "./solarnetwork_api.js"
 import {Result} from "true-myth";
 import {WriteStream} from "fs";
@@ -26,6 +43,76 @@ import {WriteStream} from "fs";
 function columnName(c: string): string {
     const meta = c.indexOf("$")
     return meta == -1 ? c : c.substring(0, meta)
+}
+
+function columnValueLocation(c: string, row: TaggedLocationDatum): string {
+    const meta = c.indexOf("$")
+    const name = columnName(c)
+    let metaName = ""
+    if (meta != -1) {
+        metaName = c.substring(meta + 1)
+    }
+
+    switch (row.state) {
+        case "raw": {
+            const [created, locationId, sourceId, localDate, localTime, _tags, samples] = row.datum
+
+            if (name === "created") {
+                return created
+            } else if (name === "locationId") {
+                return locationId.toString()
+            } else if (name === "sourceId") {
+                return sourceId.toString()
+            } else if (name === "localDate") {
+                return localDate.toString()
+            } else if (name === "localTime") {
+                return localTime.toString()
+            }
+
+            const sample = samples.get(name)
+            if (sample) {
+                return sample.toString()
+            }
+            return ""
+        }
+        case "aggregated": {
+            const [created, locationId, sourceId, localDate, localTime, _tags, samples] = row.datum
+
+            if (name === "created") {
+                return created
+            } else if (name === "locationId") {
+                return locationId.toString()
+            } else if (name === "sourceId") {
+                return sourceId.toString()
+            } else if (name === "localDate") {
+                return localDate.toString()
+            } else if (name === "localTime") {
+                return localTime.toString()
+            }
+
+            const sample = samples.get(name)
+            if (sample) {
+                switch (sample.type) {
+                    case "raw":
+                        return sample.value.toString()
+                    case "aggregated":
+                        switch (metaName) {
+                            case "":
+                                return sample.average.toString()
+                            case "average":
+                                return sample.average.toString()
+                            case "minimum":
+                                return sample.min.toString()
+                            case "maximum":
+                                return sample.max.toString()
+                            default:
+                                throw new Error(`Unrecognized meta value: ${metaName}`)
+                        }
+                }
+            }
+            return ""
+        }
+    }
 }
 
 function columnValue(c: string, row: TaggedDatum, m: StreamMeta): string {
@@ -162,6 +249,148 @@ function chunkArray<T>(arr: T[], n: number): T[][] {
         if (chunkLength * (i + 1) <= arr.length) chunks.push(arr.slice(chunkLength * i, chunkLength * (i + 1)));
     }
     return chunks;
+}
+
+async function listLocationSourceMeasurements(id: string, source: string): Promise<Result<void, Error>> {
+    const cfg = readConfigFile()
+    if (!cfg.sn) {
+        return Result.err(new Error("You must authenticate against SolarNetwork"))
+    }
+
+    if (!cfg.sn.token) {
+        return Result.err(new Error("You must provide a token"))
+    }
+
+    if (!cfg.sn.secret) {
+        return Result.err(new Error("You must provide a secret"))
+    }
+
+    const result = await getLocationDatums(cfg.sn, true, id, source, undefined, undefined)
+    if (!result.isOk) {
+        console.error("Failed to fetch location datums")
+        return Result.err(result.error)
+    }
+
+    const datum = result.value.response.data.results[0]
+    let rows = []
+    const ignore = new Set(['created', 'locationId', 'sourceId', 'localDate', 'localTime', 'tags'])
+
+    for (const k of Object.keys(datum)) {
+        if (ignore.has(k)) {
+            continue
+        }
+
+        rows.push({
+            location: id,
+            sourceId: source,
+            measurement: k,
+            "type": typeof datum[k]
+        })
+    }
+
+    const p = new Table({
+        columns: [
+            {
+                name: "location",
+                alignment: "left"
+            },
+            {
+                name: "sourceId",
+                alignment: "left"
+            },
+            {
+                name: "measurement",
+                alignment: "left"
+            },
+            {
+                name: "type",
+                alignment: "left"
+            },
+        ],
+        rows: rows
+    })
+
+    p.printTable()
+
+    return Result.ok(void (0))
+}
+
+async function listLocationSources(id: string): Promise<Result<void, Error>> {
+    const cfg = readConfigFile()
+
+    if (!cfg.sn) {
+        return Result.err(new Error("You must authenticate against SolarNetwork"))
+    }
+
+    if (!cfg.sn.token) {
+        return Result.err(new Error("You must provide a token"))
+    }
+
+    if (!cfg.sn.secret) {
+        return Result.err(new Error("You must provide a secret"))
+    }
+
+    //const result = await getLocationMeta(cfg.sn, true, id, undefined, undefined, undefined)
+    const result = await getLocationMeta(cfg.sn, id)
+    if (result.isErr) {
+        return Result.err(new Error(`Failed to get matching source IDS: ${result.error}`))
+    }
+
+    let rows = []
+    let collected = new Set()
+    let cols = [
+        {
+            name: 'location',
+            alignment: 'left',
+        },
+        {
+            name: 'sourceId',
+            alignment: 'left',
+        },
+        {
+            name: 'tags',
+            alignment: 'left',
+        }
+    ]
+
+    for (const location of result.value) {
+        let obj: any = {
+            'location': location.locationId,
+            'sourceId': location.sourceId,
+            'tags': location.t.toString()
+        }
+
+        for (const k of Object.keys(location.m)) {
+            obj[k] = location.m[k]
+
+            if (!collected.has(k)) {
+                collected.add(k)
+                cols.push({
+                    name: k,
+                    alignment: 'left'
+                })
+            }
+        }
+
+        rows.push(obj)
+    }
+
+    const p = new Table({
+        columns: cols,
+        rows: rows
+    })
+
+    p.printTable()
+
+    return Result.ok(void (0))
+}
+
+export async function listLocationMeasurements(id: string, source: string | undefined): Promise<Result<void, Error>> {
+    if (source === undefined) {
+        return await listLocationSources(id)
+    } else {
+        return await listLocationSourceMeasurements(id, source)
+    }
 }
 
 export async function listSourceMeasurements(path: string): Promise<Result<void, Error>> {
@@ -441,8 +670,134 @@ async function fetchSNDatumsConsumer(stream: WriteStream,
     stream.write("\n")
 }
 
+export interface FetchSourceDirect {
+    kind: "direct";
+    source: string
+}
+
+export interface FetchSourceLocation {
+    kind: "location";
+    locationId: string
+}
+
+export type FetchSource = FetchSourceDirect | FetchSourceLocation
+
+export async function fetchLocationDatums(cfg: SNConfig,
+                                          stream: WriteStream,
+                                          locationId: string,
+                                          format: string,
+                                          start: string,
+                                          end: string,
+                                          opts: any): Promise<Result<void, Error>> {
+
+    const columns = format.split(",")
+    const haveTimestamp = columns.findIndex(col => col === "timestamp") != -1
+    const datums = await getLocationDatums(cfg, false, locationId, opts['source'], start, end, opts['aggregation'])
+
+    if (datums.isOk) {
+        let rows: RawLocationDatum[] | AggregatedLocationDatum[] = []
+        switch (datums.value.state) {
+            case "raw": {
+                rows = parseRawLocationDatums(datums.value.response)
+                break
+            }
+            case "aggregated": {
+                rows = parseAggregatedLocationDatums(datums.value.response)
+                break
+            }
+        }
+
+        for (const row of rows) {
+            if (!row) {
+                continue
+            }
+
+            const fixed = new Set(['timestamp', 'created', 'locationId', 'sourceId', 'localDate', 'localTime', 'tags'])
+
+            const columnExists = (name: string): boolean => {
+                if (fixed.has(name)) {
+                    return true;
+                }
+
+                // TODO: need better handling in this case
+                if (name.includes("$")) {
+                    return true;
+                }
+
+                if (datums.value.state === "raw") {
+                    const c: RawLocationDatum = row as RawLocationDatum
+                    return c[6].has(name)
+                } else {
+                    const c: AggregatedLocationDatum = row as AggregatedLocationDatum
+                    return c[6].has(name)
+                }
+            }
+
+            const foundColumns = columns.filter(c => {
+                if (c == "timestamp")
+                    return true
+
+                return columnExists(c)
+            })
+
+            if (foundColumns.length != columns.length) {
+                const empty = opts['empty']
+                const partial = opts['partial']
+                const isEmpty = haveTimestamp ? foundColumns.length == 1 : foundColumns.length == 0
+                const isPartial = haveTimestamp ? foundColumns.length > 1 : foundColumns.length > 0
+
+                if (isEmpty && !empty) {
+                    continue
+                }
+                if (isPartial && !partial && !empty) {
+                    continue
+                }
+            }
+
+            for (let i = 0; i < columns.length; i++) {
+                const c = columns[i]
+                const sep = (i < (columns.length - 1)) ? ',' : ''
+
+                if (c == "timestamp") {
+                    const funkyDate = moment(row[0].toString())
+                    stream.write(funkyDate.valueOf().toString())
+                    stream.write(sep)
+                    continue
+                }
+
+                let val
+                switch (datums.value.state) {
+                    case "raw": {
+                        val = val = columnValueLocation(c, {
+                            state: "raw",
+                            datum: row as RawLocationDatum,
+                        })
+                        break
+                    }
+                    case "aggregated": {
+                        val = val = columnValueLocation(c, {
+                            state: "aggregated",
+                            datum: row as AggregatedLocationDatum,
+                        })
+                        break
+                    }
+                }
+
+                if (val !== undefined) {
+                    stream.write(val.toString())
+                }
+                stream.write(sep)
+            }
+
+            stream.write("\n")
+        }
+    }
+
+    return Result.ok(void (0))
+}
+
 export async function fetchSNDatums(stream: WriteStream,
-                                    source: string,
+                                    source: FetchSource,
                                     format: string,
                                     start: string,
                                     end: string,
@@ -466,7 +821,11 @@ export async function fetchSNDatums(stream: WriteStream,
         return Result.err(new Error(`API call to get nodes failed: ${ids.error.message}`))
     }
 
-    const sources = await listSources(cfg.sn, source, ids.value)
+    if (source.kind == "location") {
+        return await fetchLocationDatums(cfg.sn, stream, source.locationId, format, start, end, opts)
+    }
+
+    const sources = await listSources(cfg.sn, source.source, ids.value)
     if (sources.isErr) {
         return Result.err(new Error(`Failed to fetch list of sources: ${sources.error.message}`))
     }

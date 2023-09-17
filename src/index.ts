@@ -12,7 +12,7 @@ import {
     fetchDestinationTypes,
     fetchOutputTypes,
     fetchExportTasks,
-    startExportTask
+    startExportTask, FetchSource, listLocationMeasurements
 } from "./solarnetwork.js";
 
 import {createWriteStream} from "fs";
@@ -75,6 +75,23 @@ projects
         }
     })
 
+const listlocationsources = projects.command("location [id]")
+listlocationsources
+    .option("-s, --source <sourceId>",
+        `Source ID to display.`)
+    .description("Show measurements given by location and source")
+    .action(async (id?: string) => {
+        if (id === undefined) {
+            console.error("Must provide an id")
+            return
+        }
+        const opts = listlocationsources.opts()
+        const result = await listLocationMeasurements(id, opts['source'])
+        if (result.isErr) {
+            console.error(result.error.message)
+        }
+    })
+
 projects
     .command("source [path]")
     .description("Show measurements given by source")
@@ -123,13 +140,29 @@ stream
         `Allow partial rows in the output. By default, if a row of data is missing one of the columns you \
         have provided, it will be omitted by the output. If you want to include rows which are missing all data, use \
         the --empty flag.`)
+    .option("-l, --location <locationId>", "Location ID. Either a location ID, or a source ID should be provided.")
     .option("-e, --empty", `Allow empty rows in the output. Read the --partial flag documentation for \
     for information.`)
     .description("Dump datums specified by source")
     .action(async () => {
         const opts = stream.opts()
         const fd = createWriteStream(opts['output'])
-        const result = await fetchSNDatums(fd, opts['source'], opts['format'], opts['start'], opts['end'], opts)
+
+        let src: FetchSource
+        if (opts['location']) {
+            src = {
+                kind: "location",
+                locationId: opts['location']
+            }
+        } else {
+            src = {
+                kind: "direct",
+                source: opts['source']
+            }
+        }
+
+        const result = await fetchSNDatums(fd, src, opts['format'], opts['start'], opts['end'], opts)
+
         fd.close()
 
         if (result.isErr) {
@@ -212,7 +245,7 @@ const plugincmd = plugin
     .option("-g <generator>", "OpenAPI generator to use.", "python-flask")
     .option("-t <tool>", "Docker tool to use", "podman")
     .description("Initialize plugin framework in the current directory")
-    .action(async(outputDir: string) => {
+    .action(async (outputDir: string) => {
         const opts = plugincmd.opts()
         await initPlugin(outputDir, opts['g'], opts['t'])
     })

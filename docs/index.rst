@@ -20,6 +20,7 @@ Contents
 .. toctree::
 
    gettingstarted
+   locations
    reference
 
 

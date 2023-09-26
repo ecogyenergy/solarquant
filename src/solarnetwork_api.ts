@@ -4,6 +4,7 @@ import {SNConfig} from "./config";
 import axios from "axios";
 import {URL, URLSearchParams} from "url";
 import {Result} from "true-myth"
+import moment from "moment";
 
 interface NodesResponse {
     success: boolean
@@ -739,3 +740,53 @@ export async function listExportTasks(cfg: SNConfig): Promise<Result<any, Error>
         return Result.err(new Error((e as Error).message))
     }
 }
+
+export async function staleAggregation(cfg: SNConfig, start: number, end: number, nodeId: number, sourceId: string) {
+    const startDate = moment(start).format("YYYY-MM-DDTHH:mm")
+    const endDate = moment(end).format("YYYY-MM-DDTHH:mm")
+    //console.log("STALE", startDate, endDate, sourceId)
+
+    let raw: any = {
+        endDate: endDate,
+        startDate: startDate,
+        nodeId: nodeId,
+        sourceIds: sourceId
+    }
+
+    const params = new URLSearchParams(raw)
+    const url = `${cfg.url}/solaruser/api/v1/sec/datum/maint/agg/stale`
+
+    const fetchUrl = new URL(url)
+    fetchUrl.search = params.toString()
+    const urlString = encodeSolarNetworkUrl(fetchUrl)
+
+    const auth = new AuthorizationV2Builder(cfg.token).saveSigningKey(cfg.secret)
+    let authHeader = auth.snDate(true).method("POST").contentType("application/x-www-form-urlencoded").url(urlString).build(cfg.secret)
+
+    let headers: Record<string, any> = {}
+    headers[HttpHeaders.X_SN_DATE] = auth.requestDateHeaderValue
+    headers[HttpHeaders.AUTHORIZATION] = authHeader
+    headers[HttpHeaders.CONTENT_TYPE] = "application/x-www-form-urlencoded"
+
+    try {
+        const response = await axios.post<ExportResponse<null>>(url, raw,
+            {
+                headers: headers,
+                paramsSerializer: function(params) {
+                    var result = '';
+                    // Build the query string
+                    return result;
+                }
+            })
+
+        if (!response.data.success) {
+            return Result.err(new Error(`SolarNetwork API call failed: ${url}`))
+        }
+    } catch (e) {
+        console.log(e)
+        return Result.err(new Error((e as Error).message))
+    }
+
+    return Result.ok(void (0))
+}
+

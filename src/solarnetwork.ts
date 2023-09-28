@@ -498,9 +498,9 @@ async function fetchSNDatumsProducer(cfg: SNConfig, chan: SimpleChannel<SNChunk>
     const ranges = getDateRanges(moment(start), moment(end))
 
     for (const source of sources) {
-        //const b = bar.create(ranges.length, 0, {}, {
-        //format: ' {bar} | {sourceId}',
-        //})
+        const b = bar.create(ranges.length, 0, {}, {
+        format: ' {bar} | {sourceId}',
+        })
         try {
             let total = 0
 
@@ -510,7 +510,7 @@ async function fetchSNDatumsProducer(cfg: SNConfig, chan: SimpleChannel<SNChunk>
 
                 total += 1
 
-                //b.update(total, {sourceId: source})
+                b.update(total, {sourceId: source})
 
                 const response = await getDatums(cfg, false, source, ids, s, e, opts['aggregation'])
                 if (response.isErr) {
@@ -526,7 +526,7 @@ async function fetchSNDatumsProducer(cfg: SNConfig, chan: SimpleChannel<SNChunk>
         } catch (e: any) {
             console.error(`Source ${source} failed: ${e}`)
         }
-        //bar.remove(b)
+        bar.remove(b)
     }
 }
 

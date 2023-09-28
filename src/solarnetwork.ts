@@ -702,12 +702,12 @@ async function fetchSNDatumsConsumer(stream: WriteStream,
 
                     if (!recalculating && val.toString() == opts['sn_recalculate_value']) {
                         if (skip_field_value === undefined || skip_field_value && skip_field_value != opts['sn_recalculate_skip_value']) {
-                            console.log("Recalculating BEGIN", timestamp)
+                            //console.log("Recalculating BEGIN", timestamp)
                             recalculating = true
                             recalcStart = timestamp[0]
                         }
                     } else if (recalculating && val.toString() != opts['sn_recalculate_value']) {
-                        console.log("Recalculating END", timestamp)
+                        //console.log("Recalculating END", timestamp)
                         recalculating = false
                         await staleAggregation(cfg, recalcStart, timestamp[0], parseInt(m['objectId']), source)
                     }

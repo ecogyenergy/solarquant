@@ -34,7 +34,7 @@ import {
     parseAggregatedLocationDatums,
     RawLocationDatum,
     AggregatedLocationDatum,
-    TaggedLocationDatum, getLocationMeta
+    TaggedLocationDatum, getLocationMeta, staleAggregation
 } from "./solarnetwork_api.js"
 import {Result} from "true-myth";
 import {WriteStream} from "fs";
@@ -499,7 +499,7 @@ async function fetchSNDatumsProducer(cfg: SNConfig, chan: SimpleChannel<SNChunk>
 
     for (const source of sources) {
         const b = bar.create(ranges.length, 0, {}, {
-            format: ' {bar} | {sourceId}',
+        format: ' {bar} | {sourceId}',
         })
         try {
             let total = 0
@@ -534,11 +534,13 @@ async function fetchSNDatumsConsumer(stream: WriteStream,
                                      chan: SimpleChannel<SNChunk>,
                                      bar: MultiBar,
                                      total: number,
-                                     ids: any,
+                                     ids: number[],
                                      format: string,
                                      start: string,
                                      end: string,
-                                     opts: any) {
+                                     opts: any,
+                                     cfg: SNConfig,
+                                     source: string) {
 
     const columns = format.split(",")
     const b = bar.create(total, 0, {}, {
@@ -548,6 +550,11 @@ async function fetchSNDatumsConsumer(stream: WriteStream,
     })
 
     const haveTimestamp = columns.findIndex(col => col === "timestamp") != -1
+
+    let recalculating = false
+    let recalcStart = 0
+    let lastTimestampEnd
+    let lastNodeID
 
     for await(const next of chan) {
         const chunk = next.response
@@ -571,6 +578,7 @@ async function fetchSNDatumsConsumer(stream: WriteStream,
                 break
             }
         }
+
 
         for (const row of rows) {
             if (!row) {
@@ -613,6 +621,31 @@ async function fetchSNDatumsConsumer(stream: WriteStream,
                 stream.write(m['objectId'].toString())
             }
             stream.write(",")
+
+            let skip_field_value
+            if (opts["sn_recalculate_skip_field"]) {
+                for (let i = 0; i < columns.length; i++) {
+                    const c = columns[i]
+                    if (c == opts["sn_recalculate_skip_field"]) {
+                        switch (chunk.state) {
+                            case "raw": {
+                                skip_field_value = skip_field_value = columnValue(c, {
+                                    state: "raw",
+                                    datum: row as RawDatum,
+                                }, m)
+                                break
+                            }
+                            case "aggregated": {
+                                skip_field_value = skip_field_value = columnValue(c, {
+                                    state: "aggregated",
+                                    datum: row as AggregatedDatum,
+                                }, m)
+                                break
+                            }
+                        }
+                    }
+                }
+            }
 
             for (let i = 0; i < columns.length; i++) {
                 const c = columns[i]
@@ -657,14 +690,43 @@ async function fetchSNDatumsConsumer(stream: WriteStream,
                     }
                 }
 
+                const tRow = row as AggregatedDatum
+                const [_meta, timestamp, _i, _a, _status, _tags] = tRow
+
+                lastTimestampEnd = timestamp[0]
+                lastNodeID = m['objectId']
+
+                if (c == opts['sn_recalculate_field']) {
+                    const tRow = row as AggregatedDatum
+                    const [_meta, timestamp, _i, _a, _status, _tags] = tRow
+
+                    if (!recalculating && val.toString() == opts['sn_recalculate_value']) {
+                        if (skip_field_value === undefined || skip_field_value && skip_field_value != opts['sn_recalculate_skip_value']) {
+                            //console.log("Recalculating BEGIN", timestamp)
+                            recalculating = true
+                            recalcStart = timestamp[0]
+                        }
+                    } else if (recalculating && val.toString() != opts['sn_recalculate_value']) {
+                        //console.log("Recalculating END", timestamp)
+                        recalculating = false
+                        await staleAggregation(cfg, recalcStart, timestamp[0], parseInt(m['objectId']), source)
+                    }
+                }
+
                 if (val !== undefined) {
                     stream.write(val.toString())
                 }
+
                 stream.write(sep)
             }
 
             stream.write("\n")
         }
+    }
+
+    if (recalculating && lastTimestampEnd !== undefined && lastNodeID !== undefined) {
+        console.log("Recalculating END", lastTimestampEnd)
+        await staleAggregation(cfg, recalcStart, lastTimestampEnd, parseInt(lastNodeID), source)
     }
 
     stream.write("\n")
@@ -847,7 +909,7 @@ export async function fetchSNDatums(stream: WriteStream,
 
         const chan = new SimpleChannel<SNChunk>();
         const groups = chunkArray(sources.value, parallel)
-        const p1 = fetchSNDatumsConsumer(stream, chan, bar, sources.value.length * coefficient, ids.value, format, start, end, opts)
+        const p1 = fetchSNDatumsConsumer(stream, chan, bar, sources.value.length * coefficient, ids.value, format, start, end, opts, cfg.sn, source.source)
         const sncfg = cfg.sn
         const p2 = Array.from(Array(parallel).keys()).map(async i => fetchSNDatumsProducer(sncfg, chan, bar, ids.value, groups[i], format, start, end, opts))
 

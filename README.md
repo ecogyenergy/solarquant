@@ -5,6 +5,8 @@ the user to easily source training data to be used for training machine
 learning predictors. SolarQuant works by consuming OrangeButton and
 SolarNetwork data, both of which are free and open source.
 
+A containerized ready to go version of SolarQuant is maintained here: https://hub.docker.com/r/ecogyenergy/solarquant
+
 ### Documentation
 
 A live pre-built version of the SolarQuant documentation is available here: https://ecogyenergy.github.io/solarquant

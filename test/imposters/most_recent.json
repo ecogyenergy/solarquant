@@ -7,13 +7,8 @@
       "kind": "n",
       "objectId": 1,
       "sourceId": "pyr1",
-      "i": [
-        "irradiance",
-        "temperature"
-      ],
-      "a": [
-        "irradianceHours"
-      ]
+      "i": ["irradiance", "temperature"],
+      "a": ["irradianceHours"]
     },
     {
       "streamId": "3e252770-4691-4720-bcda-714945357f12",
@@ -46,25 +41,12 @@
         "voltage_bc",
         "voltage_ca"
       ],
-      "a": [
-        "wattHours"
-      ],
-      "s": [
-        "phase",
-        "events",
-        "opState",
-        "sunsOpState"
-      ]
+      "a": ["wattHours"],
+      "s": ["phase", "events", "opState", "sunsOpState"]
     }
   ],
   "data": [
-    [
-      0,
-      1674642768011,
-      0,
-      -3.3899405,
-      2070510.463043
-    ],
+    [0, 1674642768011, 0, -3.3899405, 2070510.463043],
     [
       1,
       1674596430006,

@@ -32,15 +32,8 @@
         "voltage_bc",
         "voltage_ca"
       ],
-      "a": [
-        "wattHours"
-      ],
-      "s": [
-        "phase",
-        "events",
-        "opState",
-        "sunsOpState"
-      ]
+      "a": ["wattHours"],
+      "s": ["phase", "events", "opState", "sunsOpState"]
     }
   ],
   "data": [

@@ -7,22 +7,9 @@
       "kind": "n",
       "objectId": 1,
       "sourceId": "pyr1",
-      "i": [
-        "irradiance",
-        "temperature"
-      ],
-      "a": [
-        "irradianceHours"
-      ]
+      "i": ["irradiance", "temperature"],
+      "a": ["irradianceHours"]
     }
   ],
-  "data": [
-    [
-      0,
-      1674642768011,
-      0,
-      -3.3899405,
-      2070510.463043
-    ]
-  ]
+  "data": [[0, 1674642768011, 0, -3.3899405, 2070510.463043]]
 }

@@ -1,0 +1,9 @@
+pre-commit:
+  parallel: true
+  commands:
+    lint:
+      run: npm runlint:check
+    test:
+      run: npm test
+    build:
+      run: npm run build-ts

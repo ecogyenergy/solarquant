@@ -653,6 +653,10 @@ export async function listSources(cfg: SNConfig, source: string, ids: any): Prom
         return Result.err(result.error)
     }
 
+    if (!result.value.response.meta) {
+      return Result.ok([])
+    }
+
     return Result.ok(result.value.response.meta.map((m: any) => m['sourceId']))
 }
 

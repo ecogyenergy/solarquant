@@ -199,6 +199,7 @@ export async function listEvents(start: string, end: string): Promise<void> {
       "updated",
       "userId",
       "startDate",
+      "endDate",
       "description",
       "id",
       "cause",

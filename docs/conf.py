@@ -22,7 +22,7 @@ copyright = '2023, Ecogy Energy, Thomas Passmore'
 author = 'Ecogy Energy, Thomas Passmore'
 
 # The full version, including alpha/beta/rc tags
-release = '0.11'
+release = '1.0'
 
 
 # -- General configuration ---------------------------------------------------

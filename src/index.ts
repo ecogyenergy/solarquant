@@ -1,268 +1,287 @@
 #!/usr/bin/env -S NODE_OPTIONS=--no-warnings node
 
-process.env.NODE_NO_WARNINGS = "1";
+process.env.NODE_NO_WARNINGS = '1';
 
-import { Command } from "commander";
-import { listAMSProjects, listAMSSites, listAMSSources, listEvents } from "./ams.js"
-import { authenticateAMS, authenticateSolarNetwork, setConfigPath } from "./config.js";
-import {
-  fetchSNDatums,
-  listSourceMeasurements,
-  fetchCompressionTypes,
-  fetchDestinationTypes,
-  fetchOutputTypes,
-  fetchExportTasks,
-  startExportTask, FetchSource, listLocationMeasurements
-} from "./solarnetwork.js";
+import {Command} from 'commander';
+import {listAMSProjects, listAMSSites, listAMSSources, listEvents} from './ams.js'
+import {authenticateAMS, authenticateSolarNetwork, setConfigPath} from './config.js';
+import {fetchSNDatums, listSourceMeasurements, fetchCompressionTypes, fetchDestinationTypes, fetchOutputTypes, fetchExportTasks, startExportTask, FetchSource, listLocationMeasurements, getDefaultFormat} from './solarnetwork.js';
 
-import { createWriteStream } from "fs";
+import {createWriteStream} from 'fs';
 
-import { initPlugin } from "./plugin.js";
+import {initPlugin} from './plugin.js';
 
-const quant = new Command("sqc")
-const config = new Command("config").description("Manage authenticated sessions")
-const projects = new Command("projects").description("Fetch project metadata")
-const events = new Command("events").description("Fetch events")
-const datums = new Command("datums").description("Fetch datums from SolarNetwork")
-const plugin = new Command("plugin").description("Plugin tools")
+const quant = new Command('sqc')
+const config =
+    new Command('config').description('Manage authenticated sessions')
+const projects = new Command('projects').description('Fetch project metadata')
+const events = new Command('events').description('Fetch events')
+const datums =
+    new Command('datums').description('Fetch datums from SolarNetwork')
+const plugin = new Command('plugin').description('Plugin tools')
 
-config
-  .command("authenticate <type>")
-  .description("Authenticate against a portal of a given type. Supports 'ams' and 'sn'.")
-  .action(async (type: string) => {
-    try {
-      if (type.toLowerCase() == "ams") {
-        await authenticateAMS()
-      } else if (type.toLowerCase() == "sn") {
-        await authenticateSolarNetwork()
+config.command('authenticate <type>')
+    .description(
+        'Authenticate against a portal of a given type. Supports \'ams\' and \'sn\'.')
+    .action(async (type: string) => {
+      try {
+        if (type.toLowerCase() == 'ams') {
+          await authenticateAMS()
+        } else if (type.toLowerCase() == 'sn') {
+          await authenticateSolarNetwork()
+        }
+      } catch (e) {
+        console.error(e)
       }
-    } catch (e) {
-      console.error(e)
-    }
-  })
+    })
 
-projects
-  .command("list")
-  .description("List project codes")
-  .option("-c, --codes", "Only print project codes", false)
-  .action(async (opts) => {
-    try {
-      await listAMSProjects(opts["codes"])
-    } catch (e) {
-      console.error(e)
-    }
-  })
+projects.command('list')
+    .description('List project codes')
+    .option('-c, --codes', 'Only print project codes', false)
+    .action(async (opts) => {
+      try {
+        await listAMSProjects(opts['codes'])
+      } catch (e) {
+        console.error(e)
+      }
+    })
 
-projects
-  .command("list-sites <project>")
-  .description("List site codes for a project")
-  .action(async (project: string) => {
-    try {
-      await listAMSSites(project)
-    } catch (e) {
-      console.error(e)
-    }
-  })
+projects.command('list-sites <project>')
+    .description('List site codes for a project')
+    .action(async (project: string) => {
+      try {
+        await listAMSSites(project)
+      } catch (e) {
+        console.error(e)
+      }
+    })
 
-projects
-  .command("list-sources <project> <site>")
-  .description("List sources for site")
-  .action(async (project: string, site: string) => {
-    try {
-      await listAMSSources(project, site)
-    } catch (e) {
-      console.error(e)
-    }
-  })
+projects.command('list-sources <project> <site>')
+    .description('List sources for site')
+    .action(async (project: string, site: string) => {
+      try {
+        await listAMSSources(project, site)
+      } catch (e) {
+        console.error(e)
+      }
+    })
 
-const listlocationsources = projects.command("location [id]")
-listlocationsources
-  .option("-s, --source <sourceId>",
-    `Source ID to display.`)
-  .description("Show measurements given by location and source")
-  .action(async (id?: string) => {
-    if (id === undefined) {
-      console.error("Must provide an id")
-      return
-    }
-    const opts = listlocationsources.opts()
-    const result = await listLocationMeasurements(id, opts['source'])
-    if (result.isErr) {
-      console.error(result.error.message)
-    }
-  })
+const listlocationsources = projects.command('location [id]')
+listlocationsources.option('-s, --source <sourceId>', `Source ID to display.`)
+    .description('Show measurements given by location and source')
+    .action(async (id?: string) => {
+      if (id === undefined) {
+        console.error('Must provide an id')
+        return
+      }
+      const opts = listlocationsources.opts()
+      const result = await listLocationMeasurements(id, opts['source'])
+      if (result.isErr) {
+        console.error(result.error.message)
+      }
+    })
 
-projects
-  .command("source [path]")
-  .description("Show measurements given by source")
-  .action(async (source?: string) => {
-    if (!source) {
-      source = "/**"
-    }
-    const result = await listSourceMeasurements(source)
-    if (result.isErr) {
-      console.error(result.error.message)
-    }
-  })
+projects.command('source [path]')
+    .description('Show measurements given by source')
+    .action(async (source?: string) => {
+      if (!source) {
+        source = '/**'
+      }
+      const result = await listSourceMeasurements(source)
+      if (result.isErr) {
+        console.error(result.error.message)
+      }
+    })
 
-const listevents = events.command("list")
+const listevents = events.command('list')
 listevents
-  .requiredOption("--start <startDate>",
-    `Start date for query. This value is given in ISO 8601 format, for instance '2022-05-1'.`)
-  .requiredOption("--end <endDate>", `End date for query. Read help for --start for more details.`)
-  .description("List events")
-  .action(async () => {
-    const opts = listevents.opts()
-    try {
-      await listEvents(opts['start'], opts['end'])
-    } catch (e) {
-      console.error(e)
-    }
-  })
+    .requiredOption(
+        '--start <startDate>',
+        `Start date for query. This value is given in ISO 8601 format, for instance '2022-05-1'.`)
+    .requiredOption(
+        '--end <endDate>',
+        `End date for query. Read help for --start for more details.`)
+    .description('List events')
+    .action(async () => {
+      const opts = listevents.opts()
+      try {
+        await listEvents(opts['start'], opts['end'])
+      } catch (e) {
+        console.error(e)
+      }
+    })
 
-const stream = datums.command("stream")
+const stream = datums.command('stream')
 stream
-  .requiredOption("-o, --output <file>", "File which exported data is written to", undefined)
-  .requiredOption("--start <startDate>",
-    `Start date for query. This value is given in ISO 8601 format, for instance '2022-05-1'.`)
-  .requiredOption("--end <endDate>", `End date for query. Read help for --start for more details.`)
-  .requiredOption("-s, --source <sourceId>",
-    `Source ID pattern. This may be a source ID exactly, or it may be a wildcard pattern.`)
-  .requiredOption("-f, --format <format>",
-    `Header of exported CSV data`)
-  .option("-a, --aggregation <aggregation>",
-    `Aggregation for datums. If this option is given, the datums provided by SolarQuant will be modified. \
+    .requiredOption(
+        '-o, --output <file>', 'File which exported data is written to',
+        undefined)
+    .requiredOption(
+        '--start <startDate>',
+        `Start date for query. This value is given in ISO 8601 format, for instance '2022-05-1'.`)
+    .requiredOption(
+        '--end <endDate>',
+        `End date for query. Read help for --start for more details.`)
+    .requiredOption(
+        '-s, --source <sourceId>',
+        `Source ID pattern. This may be a source ID exactly, or it may be a wildcard pattern.`)
+    .option('-f, --format <format>', `Header of exported CSV data`)
+    .option(
+        '-a, --aggregation <aggregation>',
+        `Aggregation for datums. If this option is given, the datums provided by SolarQuant will be modified. \
         Specifically, datums will be combined in intervals given by this option.`)
-  .option("--parallel <parallel>",
-    `Number of requests to execute at once. Increasing this value may make your downloads complete faster, \
-        although this depends on how SolarQuant splits your data into chunks.`, "32")
-  .option("-p, --partial",
-    `Allow partial rows in the output. By default, if a row of data is missing one of the columns you \
+    .option(
+        '--parallel <parallel>',
+        `Number of requests to execute at once. Increasing this value may make your downloads complete faster, \
+        although this depends on how SolarQuant splits your data into chunks.`,
+        '32')
+    .option(
+        '-p, --partial',
+        `Allow partial rows in the output. By default, if a row of data is missing one of the columns you \
         have provided, it will be omitted by the output. If you want to include rows which are missing all data, use \
         the --empty flag.`)
-  .option("-l, --location <locationId>", "Location ID. Either a location ID, or a source ID should be provided.")
-  .option("-e, --empty", `Allow empty rows in the output. Read the --partial flag documentation for \
+    .option(
+        '-l, --location <locationId>',
+        'Location ID. Either a location ID, or a source ID should be provided.')
+    .option(
+        '-e, --empty',
+        `Allow empty rows in the output. Read the --partial flag documentation for \
     for information.`)
-  .option("--sn_recalculate_field <field>", "Recalculate range based on the selected field. WARNING: Output file is undefined when recalculation flags are utilized.")
-  .option("--sn_recalculate_value <value>", "Recalculate range when encountering this value.")
-  .option("--sn_recalculate_skip_field <field>", "")
-  .option("--sn_recalculate_skip_value <value>", "")
-  .description("Dump datums specified by source")
-  .action(async () => {
-    const opts = stream.opts()
-    const fd = createWriteStream(opts['output'])
+    .option(
+        '--sn_recalculate_field <field>',
+        'Recalculate range based on the selected field. WARNING: Output file is undefined when recalculation flags are utilized.')
+    .option(
+        '--sn_recalculate_value <value>',
+        'Recalculate range when encountering this value.')
+    .option('--sn_recalculate_skip_field <field>', '')
+    .option('--sn_recalculate_skip_value <value>', '')
+    .description('Dump datums specified by source')
+    .action(async () => {
+      const opts = stream.opts()
+      const fd = createWriteStream(opts['output'])
 
-    let src: FetchSource
-    if (opts['location']) {
-      src = {
-        kind: "location",
-        locationId: opts['location']
+      let src: FetchSource
+      if (opts['location']) {
+        src = { kind: 'location', locationId: opts['location'] }
       }
-    } else {
-      src = {
-        kind: "direct",
-        source: opts['source']
+      else {
+        src = { kind: 'direct', source: opts['source'] }
       }
-    }
 
-    const result = await fetchSNDatums(fd, src, opts['format'], opts['start'], opts['end'], opts)
+      let format: string
+      if (!opts['format']) {
+        const result = await getDefaultFormat(opts['source'])
+        if (result.isErr) {
+          console.error('Failed to get default format: ' + result.error.message)
+          return
+        }
+        format = result.value
+      }
+      else {
+        format = opts['format']
+      }
 
-    fd.close()
+      const result =
+          await fetchSNDatums(fd, src, format, opts['start'], opts['end'], opts)
 
-    if (result.isErr) {
-      console.error(result.error.message)
-    }
-  })
+      fd.close()
 
-datums
-  .command("compression-types")
-  .description("List the compression types which are available.")
-  .action(async () => {
-    const result = await fetchCompressionTypes()
-    if (result.isErr) {
-      console.error(result.error.message)
-    }
-  })
+      if (result.isErr) {
+        console.error(result.error.message)
+      }
+    })
 
-datums
-  .command("destination-types")
-  .description("List the destination types which are available.")
-  .action(async () => {
-    const result = await fetchDestinationTypes()
-    if (result.isErr) {
-      console.error(result.error.message)
-    }
-  })
+datums.command('compression-types')
+    .description('List the compression types which are available.')
+    .action(async () => {
+      const result = await fetchCompressionTypes()
+      if (result.isErr) {
+        console.error(result.error.message)
+      }
+    })
 
-datums
-  .command("output-types")
-  .description("List the export types which are available.")
-  .action(async () => {
-    const result = await fetchOutputTypes()
-    if (result.isErr) {
-      console.error(result.error.message)
-    }
-  })
+datums.command('destination-types')
+    .description('List the destination types which are available.')
+    .action(async () => {
+      const result = await fetchDestinationTypes()
+      if (result.isErr) {
+        console.error(result.error.message)
+      }
+    })
 
-datums
-  .command("exports")
-  .description("List the currently active export tasks.")
-  .action(async () => {
-    const result = await fetchExportTasks()
-    if (result.isErr) {
-      console.error(result.error.message)
-    }
-  })
+datums.command('output-types')
+    .description('List the export types which are available.')
+    .action(async () => {
+      const result = await fetchOutputTypes()
+      if (result.isErr) {
+        console.error(result.error.message)
+      }
+    })
+
+datums.command('exports')
+    .description('List the currently active export tasks.')
+    .action(async () => {
+      const result = await fetchExportTasks()
+      if (result.isErr) {
+        console.error(result.error.message)
+      }
+    })
 
 function collect(val: string, memo: string[]): string[] {
   memo.push(val);
   return memo;
 }
 
-const exportcmd = datums.command("export")
+const exportcmd = datums.command('export')
 
 exportcmd
-  .requiredOption("--start <startDate>",
-    `Start date for query. This value is given in ISO 8601 format, for instance '2022-05-1'.`)
-  .requiredOption("--end <endDate>", `End date for query. Read help for --start for more details.`)
-  .requiredOption("-s, --source <sourceId>",
-    `Source ID pattern. This may be a source ID exactly, or it may be a wildcard pattern.`)
-  .requiredOption("--compression <compressionId>",
-    `Compression type to be used. You may either use the ID, or the localized name.`)
-  .requiredOption("--output <outputId>",
-    `Output type to be used. You may either use the ID, or the localized name.`)
-  .option("--output-prop <key>", "Output property (key:value)", collect, [])
-  .option("--destination <destinationId>",
-    `Destination type to be used. You may either use the ID, or the localized name.`)
-  .option("--destination-prop <key>", "Destination property (key:value)", collect, [])
-  .description("Export data")
-  .action(async () => {
-    const opts = exportcmd.opts()
-    const result = await startExportTask(opts)
-    if (result.isErr) {
-      console.error(result.error.message)
-    }
-  })
+    .requiredOption(
+        '--start <startDate>',
+        `Start date for query. This value is given in ISO 8601 format, for instance '2022-05-1'.`)
+    .requiredOption(
+        '--end <endDate>',
+        `End date for query. Read help for --start for more details.`)
+    .requiredOption(
+        '-s, --source <sourceId>',
+        `Source ID pattern. This may be a source ID exactly, or it may be a wildcard pattern.`)
+    .requiredOption(
+        '--compression <compressionId>',
+        `Compression type to be used. You may either use the ID, or the localized name.`)
+    .requiredOption(
+        '--output <outputId>',
+        `Output type to be used. You may either use the ID, or the localized name.`)
+    .option('--output-prop <key>', 'Output property (key:value)', collect, [])
+    .option(
+        '--destination <destinationId>',
+        `Destination type to be used. You may either use the ID, or the localized name.`)
+    .option(
+        '--destination-prop <key>', 'Destination property (key:value)', collect,
+        [])
+    .description('Export data')
+    .action(async () => {
+      const opts = exportcmd.opts()
+      const result = await startExportTask(opts)
+      if (result.isErr) {
+        console.error(result.error.message)
+      }
+    })
 
-const plugincmd = plugin
-  .command("init <outputDir>")
-  .option("-g <generator>", "OpenAPI generator to use.", "python-flask")
-  .option("-t <tool>", "Docker tool to use", "podman")
-  .description("Initialize plugin framework in the current directory")
-  .action(async (outputDir: string) => {
-    const opts = plugincmd.opts()
-    await initPlugin(outputDir, opts['g'], opts['t'])
-  })
+const plugincmd =
+    plugin.command('init <outputDir>')
+        .option('-g <generator>', 'OpenAPI generator to use.', 'python-flask')
+        .option('-t <tool>', 'Docker tool to use', 'podman')
+        .description('Initialize plugin framework in the current directory')
+        .action(
+            async (outputDir: string) => {
+                const opts = plugincmd.opts() await initPlugin(
+                    outputDir, opts['g'], opts['t'])})
 
-quant
-  .option("--config <configPath>", "Path to config file")
-  .on("option:config", (arg) => {
-    setConfigPath(arg)
-  })
-  .addCommand(config)
-  .addCommand(projects)
-  .addCommand(events)
-  .addCommand(datums)
-  .addCommand(plugin)
+quant.option('--config <configPath>', 'Path to config file')
+    .on('option:config', (arg) => {setConfigPath(arg)})
+    .addCommand(config)
+    .addCommand(projects)
+    .addCommand(events)
+    .addCommand(datums)
+    .addCommand(plugin)
 
 quant.parse(process.argv)

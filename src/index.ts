@@ -273,7 +273,8 @@ const plugincmd =
         .description('Initialize plugin framework in the current directory')
         .action(
             async (outputDir: string) => {
-                const opts = plugincmd.opts() await initPlugin(
+                const opts = plugincmd.opts()
+                await initPlugin(
                     outputDir, opts['g'], opts['t'])})
 
 quant.option('--config <configPath>', 'Path to config file')

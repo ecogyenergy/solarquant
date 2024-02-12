@@ -1,14 +1,13 @@
-import moment, { Moment } from "moment";
+import moment, {Moment} from 'moment';
 
 export interface MomentRange {
-  beginInclusive: Moment,
-  endExclusive: Moment,
+  beginInclusive: Moment, endExclusive: Moment,
 }
 
 export function getDateRanges(a: Moment, b: Moment): MomentRange[] {
   let ret = []
 
-  for (let m = moment(a); m.diff(b, 'months') <= 0; m.add(1, 'months')) {
+      for (let m = moment(a); m.diff(b, 'months') <= 0; m.add(1, 'months')) {
     let start;
     let end;
 

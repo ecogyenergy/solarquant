@@ -1,6 +1,6 @@
-import * as child_process from "child_process";
-import { fileSync } from "tmp";
-import { appendFileSync } from "fs";
+import * as child_process from 'child_process';
+import {appendFileSync} from 'fs';
+import {fileSync} from 'tmp';
 
 const spec = `
 openapi: 3.0.0
@@ -105,11 +105,13 @@ components:
             phase: true
 `
 
-export async function initPlugin(outputDir: string, generator: string, tool: string): Promise<void> {
+export async function initPlugin(
+    outputDir: string, generator: string, tool: string): Promise<void> {
   const tmpf = fileSync()
   appendFileSync(tmpf.name, new Buffer(spec))
 
-  const cmd = `/usr/bin/${tool} run --rm -v "/:/local" --cgroup-manager=cgroupfs --events-backend=file docker.io/openapitools/openapi-generator-cli generate \
+  const cmd = `/usr/bin/${
+      tool} run --rm -v "/:/local" --cgroup-manager=cgroupfs --events-backend=file docker.io/openapitools/openapi-generator-cli generate \
 		-i /local${tmpf.name} \
 		-g ${generator} \
 		-o /local${outputDir}`

@@ -33,7 +33,6 @@ import {
     parseRawLocationDatums,
     RawDatum,
     RawLocationDatum,
-    staleAggregation,
     StreamMeta,
     submitExportTask,
     TaggedDatum,
@@ -627,6 +626,7 @@ async function fetchSNDatumsConsumer(
             stream.write(',')
 
             let skip_field_value
+            /*
             if (opts['sn_recalculate_skip_field']) {
                 for (let i = 0; i < columns.length; i++) {
                     const c = columns[i]
@@ -654,6 +654,7 @@ async function fetchSNDatumsConsumer(
                     }
                 }
             }
+             */
 
             for (let i = 0; i < columns.length; i++) {
                 const c = columns[i]
@@ -708,6 +709,7 @@ async function fetchSNDatumsConsumer(
                 lastTimestampEnd = timestamp[0]
                 lastNodeID = m['objectId']
 
+                /*
                 if (c == opts['sn_recalculate_field']) {
                     const tRow = row as AggregatedDatum
                     const [_meta, timestamp, _i, _a, _status, _tags] = tRow
@@ -731,6 +733,7 @@ async function fetchSNDatumsConsumer(
                             source)
                     }
                 }
+                 */
 
                 if (val !== undefined) {
                     stream.write(val.toString())
@@ -743,6 +746,7 @@ async function fetchSNDatumsConsumer(
         }
     }
 
+    /*
     if (recalculating && lastTimestampEnd !== undefined &&
         lastNodeID !== undefined) {
         console.log('Recalculating END', lastTimestampEnd)
@@ -750,6 +754,7 @@ async function fetchSNDatumsConsumer(
             cfg, recalcStart, lastTimestampEnd, parseInt(lastNodeID),
             source)
     }
+     */
 
     stream.write('\n')
 }

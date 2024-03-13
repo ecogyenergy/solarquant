@@ -137,14 +137,14 @@ You will be asked to provide the following information:
      - string
      - SolarNetwork secret.
 
-Ecogy AMS
+Ecosuite
 ~~~~~~~~~
 
-To authenticate against the Ecogy AMS, run the following command:
+To authenticate against Ecosuite, run the following command:
 
 .. code-block:: console
 
-    $ sqc config authenticate ams
+    $ sqc config authenticate ecosuite
 
 You will be asked to provide the following information:
 
@@ -171,11 +171,11 @@ You will be asked to provide the following information:
    * - username
      - Yes
      - string
-     - Ecogy AMS username.
+     - Ecosuite username.
    * - password
      - Yes
      - string
-     - Ecogy AMS password.
+     - Ecosuite password.
 
 Tutorial: Exporting SolarNetwork Data
 -------------------------------------

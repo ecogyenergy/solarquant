@@ -58,7 +58,7 @@ export async function authenticateAMS(): Promise<void> {
 
     if (!cfg.ams?.url) {
         const def = 'https://api.ecogytest.io'
-        cfg.ams.url = question(`AMS URL [${def}]: `, {defaultInput: def})
+        cfg.ams.url = question(`Ecosuite URL [${def}]: `, {defaultInput: def})
     }
     if (!cfg.ams?.region) {
         cfg.ams.region = question('AWS Region: ')
@@ -70,9 +70,9 @@ export async function authenticateAMS(): Promise<void> {
         cfg.ams.clientId = question('Client ID: ')
     }
     if (!cfg.ams?.username) {
-        cfg.ams.username = question('AMS Username: ')
+        cfg.ams.username = question('Ecosuite Username: ')
     }
-    const password = question('AMS Password: ', {hideEchoBack: true})
+    const password = question('Ecosuite Password: ', {hideEchoBack: true})
 
     const AwsConfigAuth = {
         region: cfg.ams.region,

@@ -7,7 +7,7 @@ export async function listAMSProjects(codes: boolean): Promise<void> {
     const cfg = readConfigFile()
 
     if (!cfg.ams?.session) {
-        throw new Error('Must have active AMS authentication')
+        throw new Error('Must have active Ecosuite authentication')
     }
 
     try {

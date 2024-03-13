@@ -22,10 +22,10 @@ const plugin = new Command('plugin').description('Plugin tools')
 
 config.command('authenticate <type>')
     .description(
-        'Authenticate against a portal of a given type. Supports \'ams\' and \'sn\'.')
+        'Authenticate against a portal of a given type. Supports \'ecosuite\' and \'sn\'.')
     .action(async (type: string) => {
       try {
-        if (type.toLowerCase() == 'ams') {
+        if (type.toLowerCase() == 'ecosuite') {
           await authenticateAMS()
         } else if (type.toLowerCase() == 'sn') {
           await authenticateSolarNetwork()
@@ -147,6 +147,7 @@ stream
         '-e, --empty',
         `Allow empty rows in the output. Read the --partial flag documentation for \
     for information.`)
+    /*
     .option(
         '--sn_recalculate_field <field>',
         'Recalculate range based on the selected field. WARNING: Output file is undefined when recalculation flags are utilized.')
@@ -155,6 +156,7 @@ stream
         'Recalculate range when encountering this value.')
     .option('--sn_recalculate_skip_field <field>', '')
     .option('--sn_recalculate_skip_value <value>', '')
+     */
     .description('Dump datums specified by source')
     .action(async () => {
       const opts = stream.opts()

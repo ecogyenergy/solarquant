@@ -751,6 +751,7 @@ export async function listExportTasks(cfg: SNConfig):
     }
 }
 
+/*
 export async function staleAggregation(
     cfg: SNConfig, start: number, end: number, nodeId: number,
     sourceId: string) {
@@ -805,3 +806,4 @@ export async function staleAggregation(
 
     return Result.ok(void (0))
 }
+ */

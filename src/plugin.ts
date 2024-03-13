@@ -1,6 +1,8 @@
 import * as child_process from 'child_process';
-import {appendFileSync} from 'fs';
-import {fileSync} from 'tmp';
+import { appendFileSync, existsSync } from 'fs';
+import { isAbsolute } from 'path';
+import { fileSync } from 'tmp';
+import { Result } from 'true-myth';
 
 const spec = `
 openapi: 3.0.0
@@ -106,15 +108,24 @@ components:
 `
 
 export async function initPlugin(
-    outputDir: string, generator: string, tool: string): Promise<void> {
-    const tmpf = fileSync()
-    appendFileSync(tmpf.name, new Buffer(spec))
+  outputDir: string, generator: string, tool: string): Promise<Result<void, Error>> {
+  const tmpf = fileSync()
+  appendFileSync(tmpf.name, new Buffer(spec))
 
-    const cmd = `/usr/bin/${
-        tool} run --rm -v "/:/local" --cgroup-manager=cgroupfs --events-backend=file docker.io/openapitools/openapi-generator-cli generate \
+  const toolPath = isAbsolute(tool) ? tool : `/usr/bin/${tool}`
+
+  if (!existsSync(toolPath)) {
+    return Result.err(new Error(`Tool given by path ${toolPath} doesn't exist`))
+  }
+
+  const cmd = `${toolPath} run --rm -v "/:/local" docker.io/openapitools/openapi-generator-cli generate \
 		-i /local${tmpf.name} \
 		-g ${generator} \
 		-o /local${outputDir}`
 
-    child_process.execSync(cmd)
+  console.log(cmd)
+
+  child_process.execSync(cmd)
+
+  return Result.ok(void (0))
 }

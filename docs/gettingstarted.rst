@@ -84,7 +84,7 @@ To use the `sqc` command, add this to your `PATH` environment variable:
       projects          Fetch project metadata
       events            Fetch events
       datums [options]  Fetch datums from SolarNetwork
-      plugin                 Plugin tools
+      plugin            Plugin tools
       help [command]    display help for command
 
 .. note::

@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Getting Started &#8212; SolarQuant 1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=f63d8bfa" />
+    <link rel="stylesheet" type="text/css" href="_static/haiku.css?v=e491ac2d" />
+    <script src="_static/documentation_options.js?v=f2a433a1"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Location Data" href="locations.html" />
+    <link rel="prev" title="SolarQuant Documentation" href="index.html" /> 
+  </head><body>
+      <div class="header" role="banner"><h1 class="heading"><a href="index.html">
+          <span>SolarQuant 1.0 documentation</span></a></h1>
+        <h2 class="heading"><span>Getting Started</span></h2>
+      </div>
+      <div class="topnav" role="navigation" aria-label="top navigation">
+      
+        <p>
+        «&#160;&#160;<a href="index.html">SolarQuant Documentation</a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="index.html">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="locations.html">Location Data</a>&#160;&#160;»
+        </p>
+
+      </div>
+      <div class="content" role="main">
+        
+        
+  <section id="getting-started">
+<h1>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading">¶</a></h1>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h2>
+<p>To install the SolarQuant environment, you can either use Docker or install directly to your machine. Installing
+through docker is the recommended method, as it involves no setup and should work on any operating system and
+developer environment. Installing SolarQuant directly to your machine is useful if you want to work on the SolarQuant
+code itself.</p>
+<section id="installing-with-docker">
+<h3>Installing with Docker<a class="headerlink" href="#installing-with-docker" title="Link to this heading">¶</a></h3>
+<p>Firstly, install Docker <a class="footnote-reference brackets" href="#id2" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a>. Once this has been accomplished, you can pull the SolarQuant image from Docker Hub:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>docker<span class="w"> </span>pull<span class="w"> </span>ecogyenergy/solarquant:latest
+<span class="gp">$ </span>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>-it<span class="w"> </span>--entrypoint<span class="w"> </span>bash<span class="w"> </span>ecogyenergy/solarquant:latest
+<span class="gp"># </span>sqc<span class="w"> </span>-h
+<span class="go">  Usage: sqc [options] [command]</span>
+
+<span class="go">  Options:</span>
+<span class="go">    --config &lt;configPath&gt;  Path to config file</span>
+<span class="go">    -h, --help             display help for command</span>
+
+<span class="go">  Commands:</span>
+<span class="go">    config                 Manage authenticated sessions</span>
+<span class="go">    projects               Fetch project metadata</span>
+<span class="go">    events                 Fetch events</span>
+<span class="go">    datums                 Fetch datums from SolarNetwork</span>
+<span class="go">    plugin                 Plugin tools</span>
+<span class="go">    help [command]         display help for command</span>
+</pre></div>
+</div>
+<p>The recommended way of using SolarQuant is to use a shell alias on Unix-like shells:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>docker<span class="w"> </span>pull<span class="w"> </span>ecogyenergy/solarquant:latest
+<span class="gp">$ </span>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>-it<span class="w"> </span>--entrypoint<span class="w"> </span>bash<span class="w"> </span>ecogyenergy/solarquant:latest
+<span class="gp">$ </span><span class="nb">alias</span><span class="w"> </span><span class="nv">sqc</span><span class="o">=</span><span class="s2">&quot;docker run --privileged -it --rm -v &#39;</span><span class="nv">$PWD</span><span class="s2">:/local&#39; ecogyenergy/solarquant:latest --config /local/sqc.json&quot;</span>
+<span class="gp">$ </span>sqc<span class="w"> </span>-h
+<span class="go">  Usage: sqc [options] [command]</span>
+<span class="go">...</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>When using the alias, your current working directory should be prepended by <cite>/local/</cite> in your commands. This is
+because the previous commands mounts your working directory as a volume inside of the SolarQuant environment at
+this directory.</p>
+</div>
+</section>
+<section id="installing-directly-on-development-machine">
+<h3>Installing directly on development machine<a class="headerlink" href="#installing-directly-on-development-machine" title="Link to this heading">¶</a></h3>
+<p>To install the SolarQuant Environment directly on your machine, clone the code locally and install the package:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>git<span class="w"> </span>clone<span class="w"> </span>git@github.com:ecogyenergy/solarquant.git
+<span class="gp">$ </span><span class="nb">cd</span><span class="w"> </span>solarquant
+<span class="gp">$ </span>npm<span class="w"> </span>install
+<span class="go">[ .. ommitted ]</span>
+<span class="gp">$ </span>npx<span class="w"> </span>tsc
+<span class="gp">$ </span>npm<span class="w"> </span>link
+<span class="go">...</span>
+<span class="go">/home/username/.npm/bin/sqc -&gt; /home/username/.npm/lib/node_modules/solarquant/src/index.js</span>
+<span class="go">/home/username/.npm/lib/node_modules/solarquant -&gt; /home/username/ecogy/solarquant</span>
+<span class="go">```</span>
+</pre></div>
+</div>
+<p>To use the <cite>sqc</cite> command, add this to your <cite>PATH</cite> environment variable:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span><span class="nb">export</span><span class="w"> </span><span class="nv">PATH</span><span class="o">=</span><span class="nv">$PATH</span>:/home/username/.npm/bin/
+<span class="gp">$ </span>sqc<span class="w"> </span>-h
+<span class="go">Usage: sqc [options] [command]</span>
+
+<span class="go">Options:</span>
+<span class="go">  -h, --help        display help for command</span>
+
+<span class="go">Commands:</span>
+<span class="go">  config            Manage authenticated sessions</span>
+<span class="go">  projects          Fetch project metadata</span>
+<span class="go">  events            Fetch events</span>
+<span class="go">  datums [options]  Fetch datums from SolarNetwork</span>
+<span class="go">  plugin            Plugin tools</span>
+<span class="go">  help [command]    display help for command</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Exporting the <cite>PATH</cite> variable like this will only survive for as long as your terminal is being used. Consider
+adding this to a script run when your shell starts.</p>
+</div>
+</section>
+</section>
+<section id="authentication">
+<h2>Authentication<a class="headerlink" href="#authentication" title="Link to this heading">¶</a></h2>
+<p>To use SolarQuant, you must authenticate against sources of data. These sources require different information, so
+it’s advised that you reach out to the respective administrator for help. The information you enter will be stored in
+a file called <cite>sqc.json</cite>, and this file can be moved to new installations if needed.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Be careful of how you enter your data in the terminal. You may have to escape some characters, otherwise your
+terminal will misunderstand your input. This is particularly relevant for random strings, such as tokens and
+secrets.</p>
+</div>
+<section id="authenticating-with-solarnetwork">
+<h3>Authenticating with SolarNetwork<a class="headerlink" href="#authenticating-with-solarnetwork" title="Link to this heading">¶</a></h3>
+<p>To authenticate against SolarNetwork, run the following command:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>sqc<span class="w"> </span>config<span class="w"> </span>authenticate<span class="w"> </span>sn
+</pre></div>
+</div>
+<p>You will be asked to provide the following information:</p>
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-text">SolarNetwork information</span><a class="headerlink" href="#id3" title="Link to this table">¶</a></caption>
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Value</p></th>
+<th class="head"><p>Required</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>URL</p></td>
+<td><p>No</p></td>
+<td><p>string</p></td>
+<td><p>Address of the SolarNetwork server.</p></td>
+</tr>
+<tr class="row-odd"><td><p>token</p></td>
+<td><p>Yes</p></td>
+<td><p>string</p></td>
+<td><p>SolarNetwork token.</p></td>
+</tr>
+<tr class="row-even"><td><p>secret</p></td>
+<td><p>Yes</p></td>
+<td><p>string</p></td>
+<td><p>SolarNetwork secret.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="ecosuite">
+<h3>Ecosuite<a class="headerlink" href="#ecosuite" title="Link to this heading">¶</a></h3>
+<p>To authenticate against Ecosuite, run the following command:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>sqc<span class="w"> </span>config<span class="w"> </span>authenticate<span class="w"> </span>ecosuite
+</pre></div>
+</div>
+<p>You will be asked to provide the following information:</p>
+<table class="docutils align-default" id="id4">
+<caption><span class="caption-text">SolarNetwork information</span><a class="headerlink" href="#id4" title="Link to this table">¶</a></caption>
+<colgroup>
+<col style="width: 15.8%" />
+<col style="width: 15.8%" />
+<col style="width: 15.8%" />
+<col style="width: 52.6%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Value</p></th>
+<th class="head"><p>Required</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>region</p></td>
+<td><p>Yes</p></td>
+<td><p>string</p></td>
+<td><p>AWS Cognito pool region. Ask your administrator.</p></td>
+</tr>
+<tr class="row-odd"><td><p>poolId</p></td>
+<td><p>Yes</p></td>
+<td><p>string</p></td>
+<td><p>AWS Cognito pool identifier. Ask your administrator.</p></td>
+</tr>
+<tr class="row-even"><td><p>clientId</p></td>
+<td><p>Yes</p></td>
+<td><p>string</p></td>
+<td><p>AWS Cognito pool client identifier. Ask your administrator.</p></td>
+</tr>
+<tr class="row-odd"><td><p>username</p></td>
+<td><p>Yes</p></td>
+<td><p>string</p></td>
+<td><p>Ecosuite username.</p></td>
+</tr>
+<tr class="row-even"><td><p>password</p></td>
+<td><p>Yes</p></td>
+<td><p>string</p></td>
+<td><p>Ecosuite password.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="tutorial-exporting-solarnetwork-data">
+<h2>Tutorial: Exporting SolarNetwork Data<a class="headerlink" href="#tutorial-exporting-solarnetwork-data" title="Link to this heading">¶</a></h2>
+<p>This section will guide you through the process of exporting data from SolarNetwork. This requires you to authenticate
+against the SolarNetwork data source.</p>
+<section id="investigating-sources">
+<h3>Investigating Sources<a class="headerlink" href="#investigating-sources" title="Link to this heading">¶</a></h3>
+<p>Data on SolarNetwork is given by a source identifier, or <cite>sourceId</cite>. Our first task will be to investigate which
+sources we have available to us:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>sqc<span class="w"> </span>projects<span class="w"> </span><span class="nb">source</span>
+<span class="go">┌────────┬────────────────────────────────┐</span>
+<span class="go">│ nodeId │ sourceId                       │</span>
+<span class="go">├────────┼────────────────────────────────┤</span>
+<span class="go">│ 318    │ /LN/RC/S1/GEN/1                │</span>
+<span class="go">│ 318    │ /LN/RC/S1/GEN/1/FORECAST       │</span>
+<span class="go">│ 318    │ /LN/RC/S1/GEN/1/FORECAST/12    │</span>
+<span class="go">│ 318    │ /LN/RC/S1/GEN/1/FORECAST/24    │</span>
+<span class="go">│ 318    │ /LN/RC/S1/GEN/1/FORECAST/48    │</span>
+<span class="go">│ 318    │ /LN/RC/S1/INV/1                │</span>
+<span class="go">│ 318    │ /LN/RC/S2/GEN/1                │</span>
+<span class="go">...</span>
+</pre></div>
+</div>
+<p>Once we have a <cite>sourceId</cite>, we can investigate the measurements available on the source. Measurements correspond to
+columns of data:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>sqc<span class="w"> </span>projects<span class="w"> </span><span class="nb">source</span><span class="w"> </span>/LN/RC/S1/GEN/1
+<span class="go">┌─────────────────┬──────────────────┬───────────────┬──────────────┬────────┐</span>
+<span class="go">│ source          │ field            │ instantaneous │ accumulating │ status │</span>
+<span class="go">├─────────────────┼──────────────────┼───────────────┼──────────────┼────────┤</span>
+<span class="go">│ /LN/RC/S1/GEN/1 │ watts            │ Y             │              │        │</span>
+<span class="go">│ /LN/RC/S1/GEN/1 │ current          │ Y             │              │        │</span>
+<span class="go">│ /LN/RC/S1/GEN/1 │ voltage          │ Y             │              │        │</span>
+<span class="go">│ /LN/RC/S1/GEN/1 │ frequency        │ Y             │              │        │</span>
+<span class="go">│ /LN/RC/S1/GEN/1 │ powerFactor      │ Y             │              │        │</span>
+<span class="go">│ /LN/RC/S1/GEN/1 │ apparentPower    │ Y             │              │        │</span>
+<span class="go">│ /LN/RC/S1/GEN/1 │ reactivePower    │ Y             │              │        │</span>
+<span class="go">│ /LN/RC/S1/GEN/1 │ current_a        │ Y             │              │        │</span>
+<span class="go">│ /LN/RC/S1/GEN/1 │ current_b        │ Y             │              │        │</span>
+<span class="go">│ /LN/RC/S1/GEN/1 │ current_c        │ Y             │              │        │</span>
+<span class="go">│ /LN/RC/S1/GEN/1 │ voltage_a        │ Y             │              │        │</span>
+<span class="go">│ /LN/RC/S1/GEN/1 │ voltage_b        │ Y             │              │        │</span>
+<span class="go">│ /LN/RC/S1/GEN/1 │ voltage_c        │ Y             │              │        │</span>
+<span class="go">│ /LN/RC/S1/GEN/1 │ voltage_ab       │ Y             │              │        │</span>
+<span class="go">│ /LN/RC/S1/GEN/1 │ voltage_bc       │ Y             │              │        │</span>
+<span class="go">│ /LN/RC/S1/GEN/1 │ voltage_ca       │ Y             │              │        │</span>
+<span class="go">│ /LN/RC/S1/GEN/1 │ lineVoltage      │ Y             │              │        │</span>
+<span class="go">│ /LN/RC/S1/GEN/1 │ wattHours        │               │ Y            │        │</span>
+<span class="go">│ /LN/RC/S1/GEN/1 │ wattHoursReverse │               │ Y            │        │</span>
+<span class="go">│ /LN/RC/S1/GEN/1 │ phase            │               │              │ Y      │</span>
+<span class="go">└─────────────────┴──────────────────┴───────────────┴──────────────┴────────┘</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Whenever SolarQuant asks for a <cite>sourceId</cite>, you can use a wildcard expression instead. For instance, you could write
+<cite>/LN/RC/S1/GEN/*</cite> to fetch every source of this type.</p>
+</div>
+</section>
+<section id="fetching-datums">
+<h3>Fetching Datums<a class="headerlink" href="#fetching-datums" title="Link to this heading">¶</a></h3>
+<p>Downloading datums from SolarNetwork is accomplished using the datums subcommand. Firstly, let’s check the measurements
+of a source we’d like to download from:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>sqc<span class="w"> </span>projects<span class="w"> </span><span class="nb">source</span><span class="w"> </span>/MA/PA/S1/INV/4
+<span class="go">┌─────────────────┬──────────────────┬───────────────┬──────────────┬────────┐</span>
+<span class="go">│ source          │ field            │ instantaneous │ accumulating │ status │</span>
+<span class="go">├─────────────────┼──────────────────┼───────────────┼──────────────┼────────┤</span>
+<span class="go">│ /MA/PA/S1/INV/4 │ watts            │ Y             │              │        │</span>
+<span class="go">│ /MA/PA/S1/INV/4 │ current          │ Y             │              │        │</span>
+<span class="go">│ /MA/PA/S1/INV/4 │ dcPower          │ Y             │              │        │</span>
+<span class="go">│ /MA/PA/S1/INV/4 │ voltage          │ Y             │              │        │</span>
+<span class="go">│ /MA/PA/S1/INV/4 │ dcVoltage        │ Y             │              │        │</span>
+<span class="go">│ /MA/PA/S1/INV/4 │ frequency        │ Y             │              │        │</span>
+<span class="go">│ /MA/PA/S1/INV/4 │ powerFactor      │ Y             │              │        │</span>
+<span class="go">│ /MA/PA/S1/INV/4 │ apparentPower    │ Y             │              │        │</span>
+<span class="go">│ /MA/PA/S1/INV/4 │ reactivePower    │ Y             │              │        │</span>
+<span class="go">│ /MA/PA/S1/INV/4 │ temp_heatSink    │ Y             │              │        │</span>
+<span class="go">│ /MA/PA/S1/INV/4 │ temp             │ Y             │              │        │</span>
+<span class="go">│ /MA/PA/S1/INV/4 │ temp_other       │ Y             │              │        │</span>
+<span class="go">│ /MA/PA/S1/INV/4 │ temp_transformer │ Y             │              │        │</span>
+<span class="go">│ /MA/PA/S1/INV/4 │ dcCurrent        │ Y             │              │        │</span>
+<span class="go">│ /MA/PA/S1/INV/4 │ wattHours        │               │ Y            │        │</span>
+<span class="go">│ /MA/PA/S1/INV/4 │ phase            │               │              │ Y      │</span>
+<span class="go">│ /MA/PA/S1/INV/4 │ events           │               │              │ Y      │</span>
+<span class="go">│ /MA/PA/S1/INV/4 │ opState          │               │              │ Y      │</span>
+<span class="go">│ /MA/PA/S1/INV/4 │ sunsOpState      │               │              │ Y      │</span>
+<span class="go">└─────────────────┴──────────────────┴───────────────┴──────────────┴────────┘</span>
+</pre></div>
+</div>
+<p>Now, let’s download all of the datums for an entire month. To flex our muscles a bit, let’s download from all of the
+<cite>INV</cite> sources in all systems of the <cite>MA</cite> project:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>sqc<span class="w"> </span>datums<span class="w"> </span>stream<span class="w"> </span>-s<span class="w"> </span>/MA/**/INV/*<span class="w"> </span>-f<span class="w"> </span>timestamp,watts,current,voltage<span class="w"> </span>--start<span class="w"> </span><span class="m">2022</span>-05-01<span class="w"> </span>--end<span class="w"> </span><span class="m">2022</span>-06-01<span class="w"> </span>-o<span class="w"> </span>datums.csv
+<span class="gp">$ </span>head<span class="w"> </span>datums.csv
+<span class="go">sourceId,objectId,timestamp,watts,current,voltage</span>
+<span class="go">/MA/PA/S1/INV/12,409,1651363240003,0,0,277.86667</span>
+<span class="go">/MA/PA/S1/INV/12,409,1651363300003,0,0,278.46667</span>
+<span class="go">/MA/PA/S1/INV/12,409,1651363360003,0,0,278.03333</span>
+<span class="go">/MA/PA/S1/INV/12,409,1651363420003,0,0,278.06665</span>
+<span class="go">/MA/PA/S1/INV/12,409,1651363480004,0,0,278.33334</span>
+<span class="go">/MA/PA/S1/INV/12,409,1651363540237,0,0,278.33334</span>
+<span class="go">/MA/PA/S1/INV/12,409,1651363600342,0,0,278.33334</span>
+<span class="go">/MA/PA/S1/INV/12,409,1651363660308,0,0,278.33334</span>
+<span class="go">/MA/PA/S1/INV/12,409,1651363720003,0,0,278.33334</span>
+</pre></div>
+</div>
+<p>The <cite>-f</cite> argument passed to the stream subcommand is called the format parameter, and it corresponds to the goal
+CSV header. In this case, we wanted to download the <cite>watts</cite>, <cite>current</cite>, and <cite>voltage</cite> measurements alongside the UNIX
+timestamp of when these measurements were recorded.</p>
+</section>
+</section>
+<section id="tutorial-exporting-to-s3">
+<h2>Tutorial: Exporting to S3<a class="headerlink" href="#tutorial-exporting-to-s3" title="Link to this heading">¶</a></h2>
+<p>This section has similar goals to the previous section, except it will guide you through exporting to S3. Using the
+<strong>export</strong> subcommand has three different options to consider:</p>
+<ul class="simple">
+<li><p><strong>Output</strong>: This specifies the format of the data, for example CSV.</p></li>
+<li><p><strong>Compression</strong>: This controls the compression scheme which SolarNetwork uses.</p></li>
+<li><p><strong>Destination</strong>: This controls where the data is exported to, in our case we’re just interested in S3.</p></li>
+</ul>
+<section id="export-options">
+<h3>Export Options<a class="headerlink" href="#export-options" title="Link to this heading">¶</a></h3>
+<p>Firstly, let’s investigate our options for these. To see what sort of output options are available to us, use the
+<cite>output-types</cite> subcommand:</p>
+<blockquote>
+<div><div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>sqc<span class="w"> </span>datums<span class="w"> </span>output-types
+<span class="go">id: net.solarnetwork.central.datum.export.standard.CsvDatumExportOutputFormatService</span>
+<span class="go">locale: en-US</span>
+<span class="go">localized name: CSV</span>
+<span class="go">localized description: Export data in comma separated values (spreadsheet) format.</span>
+<span class="go"> - Property &#39;includeHeader.key&#39;: Include Header</span>
+<span class="go"> - Property &#39;includeHeader.desc&#39;: Toggle the inclusion of a CSV header row.</span>
+<span class="go">id: net.solarnetwork.central.datum.export.standard.JsonDatumExportOutputFormatService</span>
+<span class="go">locale: en-US</span>
+<span class="go">localized name: JSON</span>
+<span class="go">localized description: Export data in JSON format.</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>There are two options for the <cite>output</cite> option, one for CSV and one for JSON. You can either use the <cite>id</cite> field to
+identify them, or use the much handier <cite>localized name</cite>.</p>
+<p>The SolarNetwork API tells us that when using <cite>CSV</cite> as our <cite>output</cite> type, we have access to exactly one additional
+property:</p>
+<table class="docutils align-default" id="id5">
+<caption><span class="caption-text">SolarNetwork CSV Properties</span><a class="headerlink" href="#id5" title="Link to this table">¶</a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 25.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Name</p></th>
+<th class="head"><p>Long Name</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>includeHeader</p></td>
+<td><p>Include Header</p></td>
+<td><p>Toggle the inclusion of a CSV header row.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Specifying a destination property is used by using <cite>–destination-prop</cite>, output properties are specified using
+<cite>–output-prop</cite> and so on. You can use a similar procedure to investigate properties for compression and destination.</p>
+</section>
+<section id="putting-it-all-together">
+<h3>Putting It All Together<a class="headerlink" href="#putting-it-all-together" title="Link to this heading">¶</a></h3>
+<p>Once we’ve investigated the possible options and properties, we can execute an export. Below is an example export
+command:</p>
+<blockquote>
+<div><div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>sqc<span class="w"> </span>datums<span class="w"> </span><span class="nb">export</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output<span class="w"> </span>CSV<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--compression<span class="w"> </span>None<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--destination<span class="w"> </span>S3<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--destination-prop<span class="w"> </span>path:https://s3-us-east-1.amazonaws.com/solarquant<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--destination-prop<span class="w"> </span>filenameTemplate:adhoc-data-export-<span class="o">{</span>date<span class="o">}</span>.<span class="o">{</span>ext<span class="o">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--destination-prop<span class="w"> </span>accessKey:key<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--destination-prop<span class="w"> </span>secretKey:secret<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--source<span class="w"> </span>/MA/**<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--start<span class="w"> </span><span class="m">2022</span>-01-01<span class="w"> </span>--end<span class="w"> </span><span class="m">2022</span>-05-01
+</pre></div>
+</div>
+</div></blockquote>
+</section>
+</section>
+<section id="common-issues">
+<h2>Common Issues<a class="headerlink" href="#common-issues" title="Link to this heading">¶</a></h2>
+<ul>
+<li><p><strong>Valid source IDs</strong>: SolarNetwork can sometimes behave in unexpected ways if you provide a source ID which your token
+is not allowed to use, or if you’re using a pattern which has the same effect. For instance:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>sqc<span class="w"> </span>projects<span class="w"> </span><span class="nb">source</span><span class="w"> </span>/DOESNT-EXIST/**
+<span class="go">Failed to get matching source IDS: Error: Request failed with status code 403</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id2" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">1</a><span class="fn-bracket">]</span></span>
+<p>There are multiple ways of installing Docker, follow the relevant instructions for your operating system:
+<a class="reference external" href="https://docs.docker.com/get-docker/">https://docs.docker.com/get-docker/</a></p>
+</aside>
+</aside>
+</section>
+</section>
+
+
+      </div>
+      <div class="bottomnav" role="navigation" aria-label="bottom navigation">
+      
+        <p>
+        «&#160;&#160;<a href="index.html">SolarQuant Documentation</a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="index.html">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="locations.html">Location Data</a>&#160;&#160;»
+        </p>
+
+      </div>
+
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2023, Ecogy Energy, Thomas Passmore.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Reference &#8212; SolarQuant 1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=f63d8bfa" />
+    <link rel="stylesheet" type="text/css" href="_static/haiku.css?v=e491ac2d" />
+    <script src="_static/documentation_options.js?v=f2a433a1"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Location Data" href="locations.html" /> 
+  </head><body>
+      <div class="header" role="banner"><h1 class="heading"><a href="index.html">
+          <span>SolarQuant 1.0 documentation</span></a></h1>
+        <h2 class="heading"><span>Reference</span></h2>
+      </div>
+      <div class="topnav" role="navigation" aria-label="top navigation">
+      
+        <p>
+        «&#160;&#160;<a href="locations.html">Location Data</a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="index.html">Contents</a>
+        </p>
+
+      </div>
+      <div class="content" role="main">
+        
+        
+  <section id="reference">
+<h1>Reference<a class="headerlink" href="#reference" title="Link to this heading">¶</a></h1>
+<section id="exporting-datums">
+<h2>Exporting Datums<a class="headerlink" href="#exporting-datums" title="Link to this heading">¶</a></h2>
+<section id="meta-values">
+<h3>Meta Values<a class="headerlink" href="#meta-values" title="Link to this heading">¶</a></h3>
+<p>SolarQuant provides tools to reason about different interpretations for each value. These are context dependant, and
+are enumerated below. If we take an example instruction below:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>sqc<span class="w"> </span>datums<span class="w"> </span>stream<span class="w"> </span>/MA/**/INV/*<span class="w"> </span>timestamp,watts,watts<span class="se">\$</span>count<span class="w"> </span><span class="m">2022</span>-05-01<span class="w"> </span><span class="m">2022</span>-06-01<span class="w"> </span>-a<span class="w"> </span>Day<span class="w"> </span>&gt;<span class="w"> </span>datums.csv
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>When entering a meta value on a shell, you should escape the <cite>$</cite> character by adding a <cite>\</cite> character at the
+beginning. This stops your shell from expanding a variable.</p>
+</div>
+<p>The columns <cite>watts</cite> and <cite>watts$count</cite> are requested. In this case, simply typing <cite>watts</cite> is a shorthand for requesting
+<cite>watts$average</cite>, for more information read the below sections.</p>
+</section>
+<section id="aggregation">
+<h3>Aggregation<a class="headerlink" href="#aggregation" title="Link to this heading">¶</a></h3>
+<p>SolarNetwork supports aggregating multiple datums into a single datum <a class="footnote-reference brackets" href="#id2" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a>. The behaviour of aggregation is sometimes
+complex, so SolarQuant simplifies this process for the user.</p>
+<p>The following aggregation values are supported for <cite>-a</cite> / <cite>–aggregation</cite>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><cite>FiveMinute</cite></p></li>
+<li><p><cite>TenMinute</cite></p></li>
+<li><p><cite>FifteenMinute</cite></p></li>
+<li><p><cite>ThirtyMinute</cite></p></li>
+<li><p><cite>Hour</cite></p></li>
+<li><p><cite>HourOfDay</cite></p></li>
+<li><p><cite>SeasonalHourOfDay</cite></p></li>
+<li><p><cite>Day</cite></p></li>
+<li><p><cite>DayOfWeek</cite></p></li>
+<li><p><cite>SeasonalDayOfWeek</cite></p></li>
+<li><p><cite>Week</cite></p></li>
+<li><p><cite>Month</cite></p></li>
+<li><p><cite>Year</cite></p></li>
+<li><p><cite>RunningTotal</cite></p></li>
+</ul>
+</div></blockquote>
+<section id="instantaneous">
+<h4>Instantaneous<a class="headerlink" href="#instantaneous" title="Link to this heading">¶</a></h4>
+<p>Instantaneous measurements correspond to absolute values measured at a given time. When aggregating multiple datums
+into a single datum, SolarNetwork gives us the following values to use.</p>
+<p>Meta values supported:</p>
+<ul class="simple">
+<li><p><cite>$average</cite>: Returns the average of all measurements that are being aggregated against.</p></li>
+<li><p><cite>$count</cite>: Returns the number of datums that have been aggregated.</p></li>
+<li><p><cite>$minimum</cite>: Returns the minimum measurement value.</p></li>
+<li><p><cite>$maximum</cite>: Returns the maximum measurement value.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <cite>$count</cite> meta value is not supported when exporting location datums. This is because the count is not provided
+by SolarNetwork at this time.</p>
+</div>
+</section>
+<section id="accumulating">
+<h4>Accumulating<a class="headerlink" href="#accumulating" title="Link to this heading">¶</a></h4>
+<p>Accumulating measurements correspond to a value which is monotonically increasing, which is to say accumulates over
+time without decreasing.</p>
+<p>Meta values supported:</p>
+<ul class="simple">
+<li><p><cite>$starting</cite>: Returns the starting value of the accumulating value in the requested time period.</p></li>
+<li><p><cite>$ending</cite>: Returns the ending value of the accumulating value in the requested time period.</p></li>
+<li><p><cite>$difference</cite>: Returns the difference between the two above values.</p></li>
+</ul>
+</section>
+<section id="status">
+<h4>Status<a class="headerlink" href="#status" title="Link to this heading">¶</a></h4>
+<p>Status values always return the most recent value.</p>
+<blockquote>
+<div><aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id2" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">1</a><span class="fn-bracket">]</span></span>
+<p><a class="reference external" href="https://github.com/SolarNetwork/solarnetwork/wiki/SolarNet-aggregation">https://github.com/SolarNetwork/solarnetwork/wiki/SolarNet-aggregation</a></p>
+</aside>
+</aside>
+</div></blockquote>
+</section>
+</section>
+</section>
+</section>
+
+
+      </div>
+      <div class="bottomnav" role="navigation" aria-label="bottom navigation">
+      
+        <p>
+        «&#160;&#160;<a href="locations.html">Location Data</a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="index.html">Contents</a>
+        </p>
+
+      </div>
+
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2023, Ecogy Energy, Thomas Passmore.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
+    </div>
+  </body>
+</html>
